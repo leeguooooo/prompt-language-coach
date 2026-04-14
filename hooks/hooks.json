@@ -5,7 +5,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"$CLAUDE_PLUGIN_DIR/hooks/language-coach.sh\""
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/language-coach.sh\""
           }
         ]
       }

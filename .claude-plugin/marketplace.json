@@ -7,7 +7,7 @@
   "plugins": [
     {
       "name": "prompt-language-coach",
-      "source": "./.claude-plugin",
+      "source": ".",
       "description": "Language coaching in every prompt. Corrects your writing and provides natural expressions as you learn."
     }
   ]

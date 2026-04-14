@@ -1,0 +1,11 @@
+{
+  "name": "language-coach",
+  "description": "Real-time language coaching in Claude Code. Set your native and target language, get corrections and natural expressions on every prompt.",
+  "version": "0.1.0",
+  "author": {
+    "name": "leeguooooo"
+  },
+  "homepage": "https://github.com/leeguooooo/prompt-language-coach",
+  "repository": "https://github.com/leeguooooo/prompt-language-coach",
+  "license": "MIT"
+}
