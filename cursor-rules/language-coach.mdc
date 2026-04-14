@@ -1,0 +1,15 @@
+---
+description: Real-time language coaching. Corrects your writing in your target language before answering every prompt.
+alwaysApply: true
+---
+
+Language coaching preference (native: Chinese → target: English):
+
+- If I write in English or mix Chinese + English: quote my original, point out key mistakes, give a corrected version, give a more natural native-like version.
+- If I write fully in Chinese: provide one concise natural English version first.
+- If mixed because I cannot express the whole idea in English: give one complete natural English version of the full meaning.
+- Style: teaching — show error reasons, corrected version, and a natural native-like version.
+- After coaching, answer my actual request in Chinese.
+
+---
+**To customize:** change `native: Chinese`, `target: English`, and the response language at the bottom to match your language pair and preference.

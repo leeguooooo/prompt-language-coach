@@ -1,8 +1,9 @@
 # prompt-language-coach
 
-> Real-time language coaching inside Claude Code — automatically correct your writing and learn natural expressions on every prompt.
+> Real-time language coaching inside your AI editor — automatically correct your writing and learn natural expressions on every prompt.
 
 [![Claude Code Plugin](https://img.shields.io/badge/Claude%20Code-Plugin-blue)](https://github.com/leeguooooo/prompt-language-coach)
+[![Cursor](https://img.shields.io/badge/Cursor-Rules-purple)](https://github.com/leeguooooo/prompt-language-coach)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 ---
@@ -43,24 +44,30 @@ Then Claude answers your actual question.
 
 ## Installation
 
-### Prerequisites
+### Claude Code
 
-- **`jq`** — required for JSON parsing
-  - macOS: `brew install jq`
-  - Linux: `apt install jq`
-
-### Install via Claude Code marketplace
+**Prerequisites:** `jq` — `brew install jq` (macOS) / `apt install jq` (Linux)
 
 ```
-# 1. Add marketplace
-/plugin marketplace add leeguooooo/prompt-language-coach
-
-# 2. Install plugin
-/plugin install prompt-language-coach@prompt-language-coach
-
-# 3. Run setup wizard (one-time)
+/plugin marketplace add leeguooooo/plugins
+/plugin install prompt-language-coach@leeguooooo-plugins
 /language-coach setup
 ```
+
+### Cursor
+
+Copy the rule file to your project or global Cursor rules:
+
+```bash
+# Project-level (this project only)
+mkdir -p .cursor/rules
+curl -o .cursor/rules/language-coach.mdc \
+  https://raw.githubusercontent.com/leeguooooo/prompt-language-coach/main/cursor-rules/language-coach.mdc
+```
+
+Or paste the contents of [`cursor-rules/language-coach.mdc`](cursor-rules/language-coach.mdc) into **Cursor Settings → Rules for AI** (global).
+
+Edit the rule to set your native language, target language, and preferred response language.
 
 ---
 
@@ -169,7 +176,7 @@ If you prefer to install manually, clone the repo and add the hook to your `~/.c
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"/path/to/prompt-language-coach/.claude-plugin/hooks/language-coach.sh\""
+            "command": "bash \"/path/to/prompt-language-coach/hooks/language-coach.sh\""
           }
         ]
       }
