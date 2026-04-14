@@ -51,7 +51,8 @@ Then Claude answers your actual question.
 ```
 /plugin marketplace add leeguooooo/plugins
 /plugin install prompt-language-coach@leeguooooo-plugins
-/language-coach setup
+/reload-plugins
+/language-coach:language-coach setup
 ```
 
 ### Cursor
@@ -88,14 +89,14 @@ That's it — coaching activates immediately on every prompt.
 
 | Command | Description |
 |---|---|
-| `/language-coach setup` | One-time interactive setup wizard |
-| `/language-coach native <lang>` | Change your native language |
-| `/language-coach target <lang>` | Change the language you are learning |
-| `/language-coach style <mode>` | Switch coaching style: `teaching`, `concise`, `translate` |
-| `/language-coach response <mode>` | Switch response language: `native` or `target` |
-| `/language-coach status` | Show current config |
-| `/language-coach off` | Pause coaching (config preserved) |
-| `/language-coach on` | Resume coaching |
+| `/language-coach:language-coach setup` | One-time interactive setup wizard |
+| `/language-coach:language-coach native <lang>` | Change your native language |
+| `/language-coach:language-coach target <lang>` | Change the language you are learning |
+| `/language-coach:language-coach style <mode>` | Switch coaching style: `teaching`, `concise`, `translate` |
+| `/language-coach:language-coach response <mode>` | Switch response language: `native` or `target` |
+| `/language-coach:language-coach status` | Show current config |
+| `/language-coach:language-coach off` | Pause coaching (config preserved) |
+| `/language-coach:language-coach on` | Resume coaching |
 
 ---
 
