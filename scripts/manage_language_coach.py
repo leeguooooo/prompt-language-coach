@@ -18,6 +18,7 @@ from shared.config.schema import (
     ALLOWED_RESPONSE_LANGUAGES,
     ALLOWED_STYLES,
 )
+from shared.prompts.build_prompt import build_prompt
 
 TARGET_INHERIT_KEYS = (
     "goal",
@@ -259,6 +260,62 @@ def format_status(
     )
 
 
+_MARKER_START = "<!-- language-coach:start -->"
+_MARKER_END = "<!-- language-coach:end -->"
+
+
+def _platform_claude_md(platform: str) -> Path | None:
+    """Return the CLAUDE.md path for platforms that support it, or None."""
+    if platform == "claude":
+        return Path.home() / ".claude" / "CLAUDE.md"
+    return None
+
+
+def sync_claude_md(config: dict[str, Any], platform: str) -> None:
+    """Upsert the coaching instruction block in the platform CLAUDE.md."""
+    md_path = _platform_claude_md(platform)
+    if md_path is None:
+        return
+
+    if not config.get("enabled", True):
+        # Remove the block when coaching is disabled
+        if not md_path.exists():
+            return
+        text = md_path.read_text(encoding="utf-8")
+        start = text.find(_MARKER_START)
+        end = text.find(_MARKER_END)
+        if start == -1 or end == -1:
+            return
+        before = text[:start].rstrip("\n")
+        after = text[end + len(_MARKER_END):].lstrip("\n")
+        new_text = (before + "\n" + after).strip()
+        md_path.write_text(new_text + "\n" if new_text else "", encoding="utf-8")
+        return
+
+    coaching_block = "\n".join([
+        _MARKER_START,
+        build_prompt(config),
+        _MARKER_END,
+    ])
+
+    if not md_path.exists():
+        md_path.parent.mkdir(parents=True, exist_ok=True)
+        md_path.write_text(coaching_block + "\n", encoding="utf-8")
+        return
+
+    text = md_path.read_text(encoding="utf-8")
+    start = text.find(_MARKER_START)
+    end = text.find(_MARKER_END)
+
+    if start != -1 and end != -1:
+        new_text = text[:start] + coaching_block + text[end + len(_MARKER_END):]
+    else:
+        separator = "\n\n" if text.strip() else ""
+        new_text = text.rstrip("\n") + separator + coaching_block + "\n"
+
+    md_path.write_text(new_text, encoding="utf-8")
+
+
 def main() -> int:
     args = parse_args()
     path = Path(args.config).expanduser() if args.config else resolve_default_config(args.platform)
@@ -271,6 +328,7 @@ def main() -> int:
 
     message = apply_command(config, args, path)
     save_config(path, config)
+    sync_claude_md(config, args.platform)
     if message is not None:
         print(message)
     print(f"Config file: {path}")

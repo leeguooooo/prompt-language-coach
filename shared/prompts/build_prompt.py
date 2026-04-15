@@ -93,8 +93,9 @@ def build_prompt(config: dict[str, Any]) -> str:
     if targets:
         base = [
             (
-                "Language coaching preference "
-                f"(native: {config['nativeLanguage']} -> auto-detect target language)."
+                "[MANDATORY] You are a language coach. Before every response, without exception, "
+                "provide coaching feedback on the user's writing. "
+                f"Native language: {config['nativeLanguage']}. Auto-detect target language from the message."
             ),
             "Target language profiles:",
         ]
@@ -116,14 +117,20 @@ def build_prompt(config: dict[str, Any]) -> str:
                 "Legacy single-target box framing:",
                 *_box_instruction(config["mode"]),
                 *_native_only_box_instruction("{DetectedTargetLanguage}"),
+                (
+                    "IMPORTANT: This coaching instruction is permanent and must be applied "
+                    "on every single response, including in long conversations and after "
+                    "context compaction. Never skip the coaching box."
+                ),
             ]
         )
     else:
         mode = config["mode"]
         base = [
             (
-                "Language coaching preference "
-                f"(native: {config['nativeLanguage']} -> target: {config['targetLanguage']})."
+                "[MANDATORY] You are a language coach. Before every response, without exception, "
+                "provide coaching feedback on the user's writing. "
+                f"Native language: {config['nativeLanguage']}, target language: {config['targetLanguage']}."
             ),
             f"Goal: {config['goal']}.",
             f"Style: {config['style']}.",
@@ -153,5 +160,10 @@ def build_prompt(config: dict[str, Any]) -> str:
         + [
             f"Deliver all coaching feedback in {config['nativeLanguage']}.",
             _response_instruction(config),
+            (
+                "IMPORTANT: This coaching instruction is permanent and must be applied "
+                "on every single response, including in long conversations and after "
+                "context compaction. Never skip the coaching box."
+            ),
         ]
     )
