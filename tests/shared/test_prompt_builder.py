@@ -32,14 +32,53 @@ class PromptBuilderTests(unittest.TestCase):
         prompt = build_prompt(config)
 
         self.assertIn("Target language profiles:", prompt)
-        self.assertIn("Detect which target language the user wrote in", prompt)
+        self.assertIn(
+            "Detect which target language the user is currently writing in based on the message content.",
+            prompt,
+        )
+        self.assertIn(
+            "Apply the coaching config for that detected language before coaching.",
+            prompt,
+        )
+        self.assertIn(
+            "Substitute the detected language name into the box title and use '╭─ 📚 {DetectedLanguage} Coaching ─' as the opening line.",
+            prompt,
+        )
         self.assertIn("English", prompt)
         self.assertIn("Japanese", prompt)
-        self.assertIn("╭─ 📚 Language Coaching ─", prompt)
-        self.assertIn("╭─ 📚 IELTS Speaking Coaching ─", prompt)
+        self.assertIn("╭─ 📚 {DetectedLanguage} Coaching ─", prompt)
         self.assertIn("│ ", prompt)
         self.assertIn("╰", prompt)
         self.assertIn("Deliver all coaching feedback in Chinese.", prompt)
+
+    def test_multi_target_ielts_writing_prompt_uses_detected_language_in_title(self) -> None:
+        config = json.loads(
+            (FIXTURES / "config_everyday.json").read_text(encoding="utf-8")
+        )
+        config["targets"] = [
+            {
+                "targetLanguage": "English",
+                "goal": "ielts",
+                "mode": "ielts-writing",
+                "style": "teaching",
+                "targetBand": "7.5",
+            },
+            {
+                "targetLanguage": "Japanese",
+                "goal": "everyday",
+                "mode": "everyday",
+                "style": "concise",
+            },
+        ]
+
+        prompt = build_prompt(config)
+
+        self.assertIn(
+            "Substitute the detected language name into the box title and use '╭─ 📚 {DetectedLanguage} · IELTS Writing ─' as the opening line.",
+            prompt,
+        )
+        self.assertIn("English", prompt)
+        self.assertIn("Japanese", prompt)
 
     def test_everyday_prompt_stays_compact(self) -> None:
         config = json.loads(

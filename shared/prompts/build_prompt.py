@@ -5,7 +5,11 @@ from typing import Any
 from shared.pedagogy.modes import guidance_for_mode, sections_for_mode
 
 
-def _box_title_for_mode(mode: str) -> str:
+def _box_title_for_mode(mode: str, detected_language: str | None = None) -> str:
+    if detected_language is not None:
+        if mode == "ielts-writing":
+            return f"📚 {detected_language} · IELTS Writing"
+        return f"📚 {detected_language} Coaching"
     if mode == "ielts-writing":
         return "📚 IELTS Writing Coaching"
     if mode == "ielts-speaking":
@@ -15,11 +19,16 @@ def _box_title_for_mode(mode: str) -> str:
     return "📚 Language Coaching"
 
 
-def _box_instruction(mode: str) -> list[str]:
-    title = _box_title_for_mode(mode)
+def _box_instruction(mode: str, detected_language: str | None = None) -> list[str]:
+    title = _box_title_for_mode(mode, detected_language)
+    opening_line = (
+        f"Substitute the detected language name into the box title and use '╭─ {title} ─' as the opening line."
+        if detected_language is not None
+        else f"Use '╭─ {title} ─' as the opening line."
+    )
     return [
         "Box framing for the coaching feedback:",
-        f"- Use '╭─ {title} ─' as the opening line.",
+        f"- {opening_line}",
         "- Prefix every coaching line with '│ '.",
         "- Close with '╰─────────────────────────────────────' before giving the actual answer.",
     ]
@@ -41,7 +50,9 @@ def _target_profiles(config: dict[str, Any]) -> list[dict[str, Any]]:
     return [target for target in targets if isinstance(target, dict) and target.get("targetLanguage")]
 
 
-def _target_summary(target: dict[str, Any]) -> list[str]:
+def _target_summary(
+    target: dict[str, Any], *, detected_language: str | None = None
+) -> list[str]:
     lines = [
         (
             f"- {target['targetLanguage']}: goal={target['goal']}, "
@@ -59,7 +70,10 @@ def _target_summary(target: dict[str, Any]) -> list[str]:
     lines.append("  Feedback sections:")
     lines.extend(f"  - {section}" for section in sections_for_mode(target["mode"]))
     lines.append("  Box framing:")
-    lines.extend(f"  - {line}" for line in _box_instruction(target["mode"]))
+    lines.extend(
+        f"  - {line}"
+        for line in _box_instruction(target["mode"], detected_language)
+    )
     return lines
 
 
@@ -74,12 +88,15 @@ def build_prompt(config: dict[str, Any]) -> str:
             "Target language profiles:",
         ]
         for target in targets:
-            base.extend(_target_summary(target))
+            base.extend(_target_summary(target, detected_language="{DetectedLanguage}"))
         base.extend(
             [
                 (
-                    "Detect which target language the user wrote in and apply that "
-                    "language's settings before coaching."
+                    "Detect which target language the user is currently writing in "
+                    "based on the message content."
+                ),
+                (
+                    "Apply the coaching config for that detected language before coaching."
                 ),
                 (
                     "If the user's language is ambiguous or does not match a configured "
