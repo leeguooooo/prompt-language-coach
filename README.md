@@ -3,6 +3,7 @@
 > Real-time language coaching inside your AI editor — automatically correct your writing and learn natural expressions on every prompt.
 
 [![Claude Code Plugin](https://img.shields.io/badge/Claude%20Code-Plugin-blue)](https://github.com/leeguooooo/prompt-language-coach)
+[![Codex](https://img.shields.io/badge/Codex-Plugin-green)](https://github.com/leeguooooo/prompt-language-coach)
 [![Cursor](https://img.shields.io/badge/Cursor-Rules-purple)](https://github.com/leeguooooo/prompt-language-coach)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
@@ -10,11 +11,26 @@
 
 ## What it does
 
-Every message you send in Claude Code is automatically coached **before** Claude answers your actual request:
+This repository currently supports three editor surfaces:
+
+- **Claude Code** via a marketplace/plugin install plus a `UserPromptSubmit` hook
+- **Codex** via a native Codex plugin plus a `UserPromptSubmit` hook installer
+- **Cursor** via an always-on rule file
+
+Claude and Codex share the same Python coaching core and normalized config schema. Cursor is a lighter rule-based surface for everyday coaching.
+
+Every message you send in Claude Code or Codex is coached **before** the assistant answers your actual request:
 
 - Writing in your target language? → Get grammar fixes + natural native-like expressions
 - Writing in your native language? → Get one clean, natural target-language version
 - Mixed? → Get a complete natural version of the whole meaning
+
+For Claude and Codex, the shared core also supports:
+
+- `everyday`
+- `ielts-writing`
+- `ielts-speaking`
+- `review`
 
 Works for **any language pair**: Chinese → English, Japanese → English, Spanish → French, etc.
 
@@ -46,7 +62,7 @@ Then Claude answers your actual question.
 
 ### Claude Code
 
-**Prerequisites:** `jq` — `brew install jq` (macOS) / `apt install jq` (Linux)
+**Prerequisites:** `python3`
 
 ```
 /plugin marketplace add leeguooooo/plugins
@@ -54,6 +70,27 @@ Then Claude answers your actual question.
 /reload-plugins
 /language-coach:language-coach setup
 ```
+
+### Codex
+
+Copy the repo into your local Codex plugins directory:
+
+```bash
+mkdir -p ~/.codex/plugins
+cp -R /absolute/path/to/prompt-language-coach ~/.codex/plugins/prompt-language-coach
+```
+
+If your Codex setup uses `~/.agents/plugins/marketplace.json` for plugin discovery, add or update an entry that points to `~/.codex/plugins/prompt-language-coach`, then restart Codex.
+
+Install the Codex `UserPromptSubmit` hook:
+
+```bash
+python3 /absolute/path/to/prompt-language-coach/platforms/codex/install_hooks.py \
+  --repo-root /absolute/path/to/prompt-language-coach \
+  install
+```
+
+The Codex hook reads `~/.codex/language-coach.json`. Populate it with the Codex CLI examples below. The shared `/language-coach:language-coach setup` flow defaults to Claude config unless the command path explicitly runs with `--platform codex`.
 
 ### Cursor
 
@@ -68,20 +105,69 @@ curl -o .cursor/rules/language-coach.mdc \
 
 Or paste the contents of [`cursor-rules/language-coach.mdc`](cursor-rules/language-coach.mdc) into **Cursor Settings → Rules for AI** (global).
 
-Edit the rule to set your native language, target language, and preferred response language.
+Edit the rule to set your native language, target language, and preferred response language. The shipped Cursor rule is the lightweight everyday-teaching variant and does not read the shared Claude/Codex JSON config.
 
 ---
 
-## Setup wizard
+## Setup and usage
 
-Run `/language-coach setup` and answer four questions:
+### Claude Code setup
 
-1. What is your native language? (e.g. Chinese, Japanese, Spanish)
-2. What language are you learning? (e.g. English, French, German)
-3. Which coaching style? (`teaching` / `concise` / `translate`)
-4. Should Claude respond in your native or target language?
+Run `/language-coach:language-coach setup` and answer the onboarding questions:
 
-That's it — coaching activates immediately on every prompt.
+1. What is your native language?
+2. What language are you learning?
+3. What is your main goal? (`everyday` / `ielts`)
+4. Which coaching style? (`teaching` / `concise` / `translate`)
+5. Which response language should be used after coaching? (`native` / `target`)
+
+If you choose `ielts`, the setup flow also stores:
+
+1. Active IELTS mode: `ielts-writing` or `ielts-speaking`
+2. IELTS focus: `writing`, `speaking`, or `both`
+3. Target band
+4. Current level
+
+After setup, Claude coaching activates automatically on every prompt.
+
+### Codex usage
+
+Once the plugin is installed and the hook is enabled, Codex coaching also runs automatically on every prompt.
+
+Codex config is not created by the default shared setup flow. To configure Codex, use the Codex CLI commands below so they write `~/.codex/language-coach.json`.
+
+The underlying CLI is:
+
+```bash
+python3 scripts/manage_language_coach.py --platform codex <command>
+```
+
+Examples:
+
+```bash
+python3 scripts/manage_language_coach.py --platform codex native Chinese
+python3 scripts/manage_language_coach.py --platform codex target English
+python3 scripts/manage_language_coach.py --platform codex goal ielts
+python3 scripts/manage_language_coach.py --platform codex mode ielts-writing
+python3 scripts/manage_language_coach.py --platform codex focus writing
+python3 scripts/manage_language_coach.py --platform codex band 7.0
+python3 scripts/manage_language_coach.py --platform codex response target
+python3 scripts/manage_language_coach.py --platform codex status
+```
+
+The same CLI also works for Claude with `--platform claude`.
+
+### Cursor usage
+
+Cursor uses the rule file directly. After you copy or paste the rule, coaching applies to every prompt in that workspace or in your global Cursor settings.
+
+To customize Cursor:
+
+1. Change `native: ...`
+2. Change `target: ...`
+3. Change the response language line at the bottom
+
+For IELTS-specific modes, use Claude or Codex, which both route through the shared mode-aware prompt builder.
 
 ---
 
@@ -94,59 +180,112 @@ That's it — coaching activates immediately on every prompt.
 | `/language-coach:language-coach target <lang>` | Change the language you are learning |
 | `/language-coach:language-coach style <mode>` | Switch coaching style: `teaching`, `concise`, `translate` |
 | `/language-coach:language-coach response <mode>` | Switch response language: `native` or `target` |
+| `/language-coach:language-coach goal <mode>` | Switch learning goal: `everyday` or `ielts` |
+| `/language-coach:language-coach mode <mode>` | Switch coaching mode: `everyday`, `ielts-writing`, `ielts-speaking`, or `review` |
+| `/language-coach:language-coach focus <mode>` | Set IELTS focus: `writing`, `speaking`, or `both` |
+| `/language-coach:language-coach band <score>` | Store your IELTS target band |
+| `/language-coach:language-coach level <text>` | Store your current level |
 | `/language-coach:language-coach status` | Show current config |
 | `/language-coach:language-coach off` | Pause coaching (config preserved) |
 | `/language-coach:language-coach on` | Resume coaching |
 
 ---
 
+For Codex or local repo usage, the equivalent surface is:
+
+```bash
+python3 scripts/manage_language_coach.py --platform <claude|codex> <command>
+```
+
+Supported CLI commands: `status`, `on`, `off`, `native`, `target`, `style`, `response`, `goal`, `mode`, `focus`, `band`, `level`.
+
+---
+
+## Modes
+
+| Mode | What you get |
+|---|---|
+| `everyday` | Compact coaching with `Your original`, `Corrected`, `More natural`, and `1 key takeaway` |
+| `ielts-writing` | IELTS-oriented writing feedback with band range, score-lowering issues, rewrite, reusable pattern, and drill |
+| `ielts-speaking` | Spoken-naturalness feedback from text with fluency, lexical, grammar, pattern, and drill guidance |
+| `review` | Compact review summary of recurring mistakes, reusable patterns, and the next drill |
+
 ## Coaching styles
 
-| Style | What you get |
+| Style | What it changes |
 |---|---|
-| `teaching` | Error explanation + corrected version + natural version |
-| `concise` | Corrected version + natural version (no explanations) |
-| `translate` | Target-language version only |
+| `teaching` | Explanatory coaching with reasons and upgrade guidance |
+| `concise` | Shorter correction-focused coaching |
+| `translate` | Target-language-first coaching with minimal explanation |
 
 ---
 
 ## Configuration
 
-Config is stored at `~/.claude/language-coach.json` (global, not project-specific):
+Platform-specific storage:
+
+- Claude: `~/.claude/language-coach.json`
+- Codex: `~/.codex/language-coach.json`
+- Cursor: edit `.cursor/rules/language-coach.mdc` or your global Cursor rules directly
+
+Claude and Codex use the same normalized JSON schema:
 
 ```json
 {
-  "native": "Chinese",
-  "target": "English",
+  "nativeLanguage": "Chinese",
+  "targetLanguage": "English",
+  "goal": "ielts",
+  "mode": "ielts-writing",
   "style": "teaching",
+  "responseLanguage": "target",
   "enabled": true,
-  "responseLanguage": "native"
+  "ieltsFocus": "writing",
+  "targetBand": "7.0",
+  "currentLevel": "6.0",
+  "version": 1
 }
 ```
 
 | Field | Values | Default | Description |
 |---|---|---|---|
-| `native` | any language name | `"Chinese"` | Your native language |
-| `target` | any language name | `"English"` | Language you are learning |
+| `nativeLanguage` | any language name | `"Chinese"` | Your native language |
+| `targetLanguage` | any language name | `"English"` | Language you are learning |
+| `goal` | `everyday` / `ielts` | `"everyday"` | Top-level learning goal |
+| `mode` | `everyday` / `ielts-writing` / `ielts-speaking` / `review` | `"everyday"` | Active coaching mode |
 | `style` | `teaching` / `concise` / `translate` | `"teaching"` | Output verbosity |
+| `responseLanguage` | `native` / `target` | `"native"` | Language used after coaching |
 | `enabled` | `true` / `false` | `true` | Toggle on/off without losing config |
-| `responseLanguage` | `native` / `target` | `"native"` | Language Claude uses for answers |
+| `ieltsFocus` | `writing` / `speaking` / `both` | `"both"` | Stored IELTS emphasis |
+| `targetBand` | free text | `""` | IELTS target band |
+| `currentLevel` | free text | `""` | Current estimated level |
+| `version` | integer | `1` | Schema version |
+
+Legacy `native` / `target` keys are normalized into the current schema when Claude or Codex loads config through the shared Python layer.
 
 ---
 
 ## How it works
 
-This plugin registers a `UserPromptSubmit` hook in Claude Code. On every message:
+Claude and Codex both render the same coaching context through the shared Python core:
 
-1. The hook script reads `~/.claude/language-coach.json`
-2. Builds a coaching instruction based on your config
-3. Injects it into Claude's context via `hookSpecificOutput.additionalContext`
-4. Claude coaches your writing first, then answers your actual request
+1. `shared/config/` loads and normalizes platform config
+2. `shared/pedagogy/modes.py` selects the feedback shape for the active mode
+3. `shared/prompts/build_prompt.py` builds the coaching instruction text
+4. `scripts/render_coaching_context.py` emits hook JSON with `hookSpecificOutput.additionalContext`
 
-The hook exits silently (no coaching, no crash) when:
-- `jq` is not installed
-- The config file does not exist yet
+Platform adapters:
+
+- Claude shell hook: `hooks/language-coach.sh`
+- Codex hook entry: `platforms/codex/hook_entry.py`
+- Cursor rule file: `cursor-rules/language-coach.mdc`
+
+Claude and Codex hooks exit silently (no coaching, no crash) when:
+
+- `python3` is not installed
+- The platform config file does not exist yet
 - `enabled` is `false`
+
+Cursor always applies its rule until you remove or edit the rule file.
 
 ---
 
@@ -165,9 +304,11 @@ Most language apps are separate tools that pull you away from your work. This pl
 
 ---
 
-## Manual install (without marketplace)
+## Manual install
 
-If you prefer to install manually, clone the repo and add the hook to your `~/.claude/settings.json`:
+### Claude
+
+If you prefer to install Claude manually, clone the repo and add the hook to your `~/.claude/settings.json`:
 
 ```json
 {
@@ -187,6 +328,28 @@ If you prefer to install manually, clone the repo and add the hook to your `~/.c
 ```
 
 Then create `~/.claude/language-coach.json` with your config.
+
+### Codex
+
+Install the hook directly against your current checkout:
+
+```bash
+python3 platforms/codex/install_hooks.py --repo-root "$(pwd)" install
+```
+
+Remove it later with:
+
+```bash
+python3 platforms/codex/install_hooks.py --repo-root "$(pwd)" remove
+```
+
+Then create or update `~/.codex/language-coach.json` with:
+
+```bash
+python3 scripts/manage_language_coach.py --platform codex native Chinese
+python3 scripts/manage_language_coach.py --platform codex target English
+python3 scripts/manage_language_coach.py --platform codex status
+```
 
 ---
 

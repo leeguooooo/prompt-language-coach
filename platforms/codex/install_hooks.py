@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import argparse
 import json
+import shlex
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -11,7 +13,19 @@ HOOK_ENTRY_PATH = "platforms/codex/hook_entry.py"
 
 
 def build_hook_command(repo_root: Path) -> str:
-    return f'python3 "{repo_root / "platforms" / "codex" / "hook_entry.py"}"'
+    hook_entry = shlex.quote(str(repo_root / "platforms" / "codex" / "hook_entry.py"))
+    script_parts = []
+
+    if sys.executable and Path(sys.executable).is_absolute():
+        interpreter = shlex.quote(sys.executable)
+        script_parts.append(f"if [ -x {interpreter} ]; then exec {interpreter} {hook_entry}; fi")
+
+    script_parts.append(
+        f"if command -v python3 >/dev/null 2>&1; then exec python3 {hook_entry}; fi"
+    )
+    script_parts.append("exit 0")
+
+    return f"/bin/sh -lc {shlex.quote(' '.join(script_parts))}"
 
 
 def build_managed_entry(repo_root: Path) -> dict[str, Any]:

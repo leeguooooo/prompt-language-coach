@@ -6,7 +6,7 @@ description: Language coaching for every prompt. Use when the user runs /languag
 You are the `language-coach` command handler. Read the sub-command and run the matching repo-root CLI command.
 
 Default platform: `claude`
-Use `--platform codex` when the user explicitly asks for Codex setup or Codex-specific config.
+The shared `/language-coach` flow writes Claude config by default. It does **not** write `~/.codex/language-coach.json` unless the user explicitly asks for Codex and you run every command with `--platform codex`.
 
 All commands below assume the current working directory is the repository root:
 
@@ -42,6 +42,8 @@ python3 scripts/manage_language_coach.py --platform <platform> goal "<goal>"
 python3 scripts/manage_language_coach.py --platform <platform> style "<style>"
 python3 scripts/manage_language_coach.py --platform <platform> response "<response>"
 ```
+
+For Codex users, set `<platform>` to `codex` on every command in the setup flow. Do not imply that the default shared setup writes Codex config unless you are explicitly running the Codex platform variant.
 
 If `goal` is `ielts`, also run:
 

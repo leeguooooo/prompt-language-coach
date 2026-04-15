@@ -2,35 +2,40 @@
 
 ## Goal
 
-Evolve `prompt-language-coach` from a Claude-first plugin into a dual-platform product that supports both Claude and Codex while preserving the strongest native experience on each platform.
+Evolve `prompt-language-coach` from a Claude-first plugin into a shared language-coaching product that supports Claude and Codex as first-class runtime surfaces while keeping Cursor available as a lighter rule-based option.
 
 The product should feel easy to adopt, stay on by default in day-to-day usage, and teach users skills that transfer to IELTS writing and speaking instead of only correcting grammar.
 
 ## Problem Statement
 
-The current repository supports:
+This document started as the design for adding Codex without duplicating pedagogy. On the current branch, that design is mostly implemented:
 
-- Claude Code via `UserPromptSubmit` hook injection
-- Cursor via an `alwaysApply` rule file
+- Claude Code via `.claude-plugin/plugin.json`, `hooks/hooks.json`, and `hooks/language-coach.sh`
+- Codex via `.codex-plugin/plugin.json`, `platforms/codex/hook_entry.py`, and `platforms/codex/install_hooks.py`
+- Cursor via `cursor-rules/language-coach.mdc`
+- Shared config, pedagogy, and prompt assembly under `shared/`
+- Shared render and management CLIs under `scripts/`
 
-It does not yet support Codex as a first-class platform. A naive port would create one of two bad outcomes:
+The remaining doc job is to describe the product accurately:
 
-- A lowest-common-denominator implementation that feels unnatural on both platforms
-- Two disconnected products with duplicated logic and drifting teaching quality
-
-The design needs to solve for product consistency, native UX, and pedagogy at the same time.
+- Claude and Codex now share one coaching core and one normalized config model
+- Cursor remains intentionally simpler and does not use the shared JSON config
+- IELTS-oriented modes exist in the shared core, but platform docs need to be explicit about where they are available
 
 ## Context
 
 Current repository structure:
 
 - `.claude-plugin/plugin.json` defines the Claude plugin package
+- `.codex-plugin/plugin.json` defines the Codex plugin package
 - `hooks/language-coach.sh` injects coaching context for Claude Code
-- `hooks/hooks.json` binds the hook to `UserPromptSubmit`
-- `skills/language-coach/SKILL.md` exposes command-based configuration in Claude
+- `hooks/hooks.json` binds the Claude hook to `UserPromptSubmit`
+- `platforms/codex/hook_entry.py` is the Codex hook target
+- `platforms/codex/install_hooks.py` installs or removes the Codex user hook
+- `scripts/manage_language_coach.py` manages normalized config for Claude and Codex
+- `scripts/render_coaching_context.py` emits hook JSON for both platforms
+- `skills/language-coach/SKILL.md` exposes the command-based configuration flow
 - `cursor-rules/language-coach.mdc` provides a Cursor always-on rule
-
-Recent repository history shows the project has been improving Claude plugin correctness and adding Cursor support, but it has not introduced a Codex-native packaging or runtime layer.
 
 ## Product Principles
 
@@ -198,7 +203,7 @@ Every meaningful coaching pass should try to leave the user with at least one of
 
 ### Claude adapter
 
-Claude should keep the current hook-based model because it provides the strongest automatic experience.
+Claude keeps the current hook-based model because it provides the strongest automatic experience.
 
 Responsibilities:
 
@@ -215,9 +220,9 @@ Claude-specific UX:
 
 ### Codex adapter
 
-Codex should be implemented as a native Codex plugin, not as a Claude compatibility layer.
+Codex is implemented as a native Codex plugin, not as a Claude compatibility layer.
 
-Responsibilities:
+Current responsibilities:
 
 - package a `.codex-plugin/plugin.json`
 - provide `skills/` for setup and management commands
@@ -229,15 +234,33 @@ Codex-specific UX:
 - command surface mirrors Claude conceptually but follows Codex naming and plugin conventions
 - automatic coaching is achieved through Codex-native `UserPromptSubmit` hook support rather than Claude compatibility shims
 
+### Cursor adapter
+
+Cursor remains a lighter companion surface rather than a full adapter on top of the shared Python runtime.
+
+Current responsibilities:
+
+- ship an `alwaysApply` rule file in `cursor-rules/language-coach.mdc`
+- provide an easy copy/paste or checked-in workspace rule for everyday coaching
+- keep customization manual and local to the rule text
+
+Cursor-specific UX:
+
+- no hook installer
+- no shared JSON config file
+- best fit for lightweight everyday coaching rather than dynamic IELTS mode switching
+
 ### Important runtime distinction
 
 Claude automatic coaching comes from hooks.
 
-Codex automatic coaching should come from Codex-native hooks plus a skill-driven configuration flow. The design should not treat Codex as if it lacked a native submit-time context injection surface.
+Codex automatic coaching comes from Codex-native hooks plus a skill-driven or CLI-driven configuration flow.
+
+Cursor coaching comes from a static rule file and is intentionally not coupled to the Claude/Codex config loader.
 
 ## Shared Core Design
 
-The repository should be reorganized around a shared teaching core.
+The repository is now organized around a shared teaching core for Claude and Codex.
 
 ### Version boundary
 
@@ -258,7 +281,7 @@ Post-v1 includes:
 - cross-platform config import and export
 - richer progress tracking and recurring mistake memory
 
-### Proposed structure
+### Current structure
 
 ```text
 .claude-plugin/
@@ -266,27 +289,27 @@ Post-v1 includes:
 hooks/
 cursor-rules/
 platforms/
-  claude/
   codex/
-  codex-hooks/
 shared/
   config/
   pedagogy/
   prompts/
+scripts/
 skills/
+tests/
 docs/
 ```
 
 ### Shared config layer
 
-`shared/config/` should define:
+`shared/config/` defines:
 
 - schema for user preferences
 - defaults
 - validation rules
 - migration logic for future config versions
 
-Suggested normalized fields:
+Normalized fields:
 
 - `nativeLanguage`
 - `targetLanguage`
@@ -302,22 +325,20 @@ Suggested normalized fields:
 
 ### Shared pedagogy layer
 
-`shared/pedagogy/` should define:
+`shared/pedagogy/` defines:
 
-- feedback templates
-- correction strategies
+- section layouts per mode
+- compact everyday guidance
 - IELTS-specific evaluation lenses
-- takeaway rules
-- drill generation rules
-- review summarization templates
+- review-mode summary structure
 
 ### Shared prompt assembly layer
 
-`shared/prompts/` should assemble the final instruction text from config and selected mode, so both platforms draw from the same teaching logic.
+`shared/prompts/` assembles the final instruction text from config and selected mode so both platforms draw from the same teaching logic.
 
 ## Command Design
 
-Claude and Codex do not need identical command syntax, but they should expose the same conceptual actions.
+Claude and Codex do not need identical command syntax, but they expose the same conceptual actions through the shared `skills/language-coach/SKILL.md` flow and `scripts/manage_language_coach.py`.
 
 Required actions:
 
@@ -332,26 +353,25 @@ Required actions:
 - `response <native|target>`
 - `goal <everyday|ielts>`
 
-Optional second-wave actions:
+Implemented second-wave actions on this branch:
 
 - `band <score>`
 - `focus <writing|speaking|both>`
-- `review now`
-- `reset`
 
 ## Persistence Design
 
 Use one normalized config schema, but do not force one physical storage location if platform conventions differ.
 
-Recommended rule:
+Current rule:
 
 - shared schema
 - adapter-owned persistence path
 
-Example:
+Actual paths on this branch:
 
-- Claude may continue using `~/.claude/language-coach.json`
-- Codex may use a Codex-native path such as a plugin-owned config file under the Codex user directory
+- Claude uses `~/.claude/language-coach.json`
+- Codex uses `~/.codex/language-coach.json`
+- Cursor uses local or global rule text and does not read a JSON config file
 
 If both platforms are installed for the same user later, config import and export belongs in the post-v1 lane. Cross-tool live coupling is explicitly out of scope for v1.
 
@@ -382,7 +402,7 @@ The product must:
 
 ## Rollout Plan Shape
 
-Implementation should proceed in this order:
+The branch followed this order, and future changes should preserve the same separation of concerns:
 
 1. define shared config schema
 2. define shared pedagogy and prompt assembly
@@ -395,14 +415,19 @@ This sequencing keeps current Claude users stable while enabling Codex without d
 
 ## Testing Strategy
 
-The implementation plan should include:
+The current verification path is:
 
-- schema validation tests
-- prompt assembly tests by mode
-- Claude adapter regression tests to preserve existing behavior
-- Codex adapter tests for setup, command handling, generated hook configuration, and hook payload assembly
-- golden tests for IELTS feedback templates
-- tone and length checks for `everyday` mode so feedback stays compact
+- `python3 -m unittest tests.shared.test_config_io tests.shared.test_prompt_builder tests.hooks.test_claude_hook_output tests.hooks.test_codex_hook_install tests.scripts.test_manage_language_coach -v`
+- `python3 scripts/render_coaching_context.py --platform claude --config tests/fixtures/config_everyday.json`
+- `python3 scripts/render_coaching_context.py --platform codex --config tests/fixtures/config_ielts_writing.json`
+
+That coverage exercises:
+
+- schema normalization and persistence
+- prompt assembly by mode
+- Claude hook payload output
+- Codex hook installer behavior
+- command handling in `scripts/manage_language_coach.py`
 
 ## Open Questions Resolved
 
@@ -426,6 +451,7 @@ Build one learning product with:
 - one normalized config model
 - a Claude hook adapter
 - a Codex plugin plus hook adapter
+- a Cursor rule-based companion surface
 - lightweight default coaching
 - explicit IELTS writing, speaking, and review modes
 

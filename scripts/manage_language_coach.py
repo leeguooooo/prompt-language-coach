@@ -121,7 +121,13 @@ def apply_command(config: dict[str, object], args: argparse.Namespace) -> str | 
     return None
 
 
-def format_status(config: dict[str, object], path: Path, platform: str) -> str:
+def format_status(
+    config: dict[str, object], path: Path, platform: str, configured: bool
+) -> str:
+    status = "on" if config["enabled"] else "off"
+    if not configured:
+        status = "not configured"
+
     return "\n".join(
         [
             f"Platform:          {platform}",
@@ -134,7 +140,7 @@ def format_status(config: dict[str, object], path: Path, platform: str) -> str:
             f"IELTS focus:       {config['ieltsFocus']}",
             f"Target band:       {config['targetBand'] or '-'}",
             f"Current level:     {config['currentLevel'] or '-'}",
-            f"Status:            {'on' if config['enabled'] else 'off'}",
+            f"Status:            {status}",
             f"Config file:       {path}",
         ]
     )
@@ -143,10 +149,11 @@ def format_status(config: dict[str, object], path: Path, platform: str) -> str:
 def main() -> int:
     args = parse_args()
     path = Path(args.config).expanduser() if args.config else resolve_default_config(args.platform)
+    configured = path.exists()
     config = load_config(path)
 
     if args.command == "status":
-        print(format_status(config, path, args.platform))
+        print(format_status(config, path, args.platform, configured))
         return 0
 
     message = apply_command(config, args)

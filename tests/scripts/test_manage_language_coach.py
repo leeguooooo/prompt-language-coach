@@ -6,6 +6,29 @@ from pathlib import Path
 
 
 class ManageLanguageCoachTests(unittest.TestCase):
+    def test_status_reports_missing_config_as_not_configured(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            home = Path(tmp)
+            config_path = home / ".codex" / "language-coach.json"
+
+            result = subprocess.run(
+                [
+                    "python3",
+                    "scripts/manage_language_coach.py",
+                    "--platform",
+                    "codex",
+                    "status",
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+                env={"HOME": str(home)},
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertFalse(config_path.exists())
+            self.assertIn("Status:            not configured", result.stdout)
+
     def test_platform_default_path_writes_codex_config(self):
         with tempfile.TemporaryDirectory() as tmp:
             home = Path(tmp)

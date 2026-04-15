@@ -15,15 +15,19 @@ def main() -> int:
     if not config_path.exists():
         return 0
 
+    python_executable = sys.executable or "python3"
     command = [
-        "python3",
+        python_executable,
         str(REPO_ROOT / "scripts" / "render_coaching_context.py"),
         "--platform",
         "codex",
         "--config",
         str(config_path),
     ]
-    return subprocess.call(command)
+    try:
+        return subprocess.call(command)
+    except OSError:
+        return 0
 
 
 if __name__ == "__main__":
