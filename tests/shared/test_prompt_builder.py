@@ -35,6 +35,10 @@ class PromptBuilderTests(unittest.TestCase):
         self.assertIn("Detect which target language the user wrote in", prompt)
         self.assertIn("English", prompt)
         self.assertIn("Japanese", prompt)
+        self.assertIn("╭─ 📚 Language Coaching ─", prompt)
+        self.assertIn("╭─ 📚 IELTS Speaking Coaching ─", prompt)
+        self.assertIn("│ ", prompt)
+        self.assertIn("╰", prompt)
         self.assertIn("Deliver all coaching feedback in Chinese.", prompt)
 
     def test_everyday_prompt_stays_compact(self) -> None:
@@ -47,6 +51,9 @@ class PromptBuilderTests(unittest.TestCase):
         self.assertIn("Corrected", prompt)
         self.assertIn("More natural", prompt)
         self.assertIn("1 key takeaway", prompt)
+        self.assertIn("╭─ 📚 Language Coaching ─", prompt)
+        self.assertIn("│ ", prompt)
+        self.assertIn("╰─────────────────────────────────────", prompt)
         self.assertNotIn("Band estimate", prompt)
         self.assertIn("Deliver all coaching feedback in Chinese.", prompt)
         self.assertNotIn("Detect which target language the user wrote in", prompt)
@@ -60,6 +67,7 @@ class PromptBuilderTests(unittest.TestCase):
         self.assertIn("Band estimate", prompt)
         self.assertIn("Reusable pattern", prompt)
         self.assertIn("Mini drill", prompt)
+        self.assertIn("╭─ 📚 IELTS Writing Coaching ─", prompt)
 
     def test_ielts_speaking_prompt_avoids_fake_pronunciation_scoring(self) -> None:
         config = json.loads(
@@ -69,6 +77,7 @@ class PromptBuilderTests(unittest.TestCase):
         prompt = build_prompt(config)
 
         self.assertIn("Do not claim to score pronunciation from text alone", prompt)
+        self.assertIn("╭─ 📚 IELTS Speaking Coaching ─", prompt)
 
 
 if __name__ == "__main__":

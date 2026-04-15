@@ -5,6 +5,26 @@ from typing import Any
 from shared.pedagogy.modes import guidance_for_mode, sections_for_mode
 
 
+def _box_title_for_mode(mode: str) -> str:
+    if mode == "ielts-writing":
+        return "📚 IELTS Writing Coaching"
+    if mode == "ielts-speaking":
+        return "📚 IELTS Speaking Coaching"
+    if mode == "review":
+        return "📚 Review Session"
+    return "📚 Language Coaching"
+
+
+def _box_instruction(mode: str) -> list[str]:
+    title = _box_title_for_mode(mode)
+    return [
+        "Box framing for the coaching feedback:",
+        f"- Use '╭─ {title} ─' as the opening line.",
+        "- Prefix every coaching line with '│ '.",
+        "- Close with '╰─────────────────────────────────────' before giving the actual answer.",
+    ]
+
+
 def _response_instruction(config: dict[str, Any]) -> str:
     native = config["nativeLanguage"]
     if _target_profiles(config) and config["responseLanguage"] == "target":
@@ -38,6 +58,8 @@ def _target_summary(target: dict[str, Any]) -> list[str]:
     lines.extend(f"  - {line}" for line in guidance_for_mode(target["mode"]))
     lines.append("  Feedback sections:")
     lines.extend(f"  - {section}" for section in sections_for_mode(target["mode"]))
+    lines.append("  Box framing:")
+    lines.extend(f"  - {line}" for line in _box_instruction(target["mode"]))
     return lines
 
 
@@ -63,6 +85,8 @@ def build_prompt(config: dict[str, Any]) -> str:
                     "If the user's language is ambiguous or does not match a configured "
                     f"target, fall back to the legacy single-target settings for {config['targetLanguage']}."
                 ),
+                "Legacy single-target box framing:",
+                *_box_instruction(config["mode"]),
             ]
         )
     else:
@@ -90,6 +114,7 @@ def build_prompt(config: dict[str, Any]) -> str:
                 guidance_text,
                 "Feedback sections to include before the actual answer:",
                 section_text,
+                *_box_instruction(mode),
             ]
         )
 
