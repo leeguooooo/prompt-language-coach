@@ -142,6 +142,8 @@
 | `/language-coach:language-coach status` | 显示当前配置 |
 | `/language-coach:language-coach off` | 暂停辅导（配置保留） |
 | `/language-coach:language-coach on` | 恢复辅导 |
+| `/language-coach:language-coach progress` | 显示所有语言的雅思分数历史 |
+| `/language-coach:language-coach progress <lang>` | 显示指定语言的分数历史 |
 
 ---
 
@@ -153,6 +155,28 @@
 | `ielts-writing` | 面向 IELTS 的写作反馈，包含分数段估计、扣分项、高分改写、可复用句式及练习 |
 | `ielts-speaking` | 对文本进行口语自然度反馈，涵盖流利度、词汇、语法、句式及练习指导 |
 | `review` | 简洁的复习总结，涵盖反复出现的错误、可复用句式及下一步练习 |
+
+## 进度追踪
+
+以下情况同时满足时，雅思估分会自动记录到 `~/.claude/language-progress.json`：
+
+1. 当前模式为 `ielts-writing` 或 `ielts-speaking`
+2. 用户使用目标语言书写（非纯母语输入）
+3. Claude 在辅导框中给出了数字估分
+
+记录永久保存，不会自动删除。使用 `/language-coach:language-coach progress` 查看历史：
+
+```
+English progress (last 5 sessions):
+  2026-04-13  5.5
+  2026-04-14  5.5
+  2026-04-15  6.0
+Current estimate: 6.0
+```
+
+如果你也使用 [Claude Status Bar](https://github.com/leeguooooo/claude-code-usage-bar)，当前分数和趋势会自动显示在状态栏（`📚 EN:6.0↑`），宠物也会根据学习状态做出反应。
+
+---
 
 ## 辅导风格
 

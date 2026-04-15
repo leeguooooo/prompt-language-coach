@@ -142,6 +142,8 @@ After setup, Claude coaching activates automatically on every prompt.
 | `/language-coach:language-coach status` | Show current config |
 | `/language-coach:language-coach off` | Pause coaching (config preserved) |
 | `/language-coach:language-coach on` | Resume coaching |
+| `/language-coach:language-coach progress` | Show IELTS band history for all languages |
+| `/language-coach:language-coach progress <lang>` | Show band history for a specific language |
 
 ---
 
@@ -153,6 +155,28 @@ After setup, Claude coaching activates automatically on every prompt.
 | `ielts-writing` | IELTS-oriented writing feedback with band range, score-lowering issues, rewrite, reusable pattern, and drill |
 | `ielts-speaking` | Spoken-naturalness feedback from text with fluency, lexical, grammar, pattern, and drill guidance |
 | `review` | Compact review summary of recurring mistakes, reusable patterns, and the next drill |
+
+## Progress tracking
+
+Band estimates are automatically recorded to `~/.claude/language-progress.json` whenever:
+
+1. The active mode is `ielts-writing` or `ielts-speaking`
+2. The user wrote in a target language (not purely in the native language)
+3. Claude gives a numeric band estimate in the coaching box
+
+Progress is stored permanently and never deleted. Use `/language-coach:language-coach progress` to see your history:
+
+```
+English progress (last 5 sessions):
+  2026-04-13  5.5
+  2026-04-14  5.5
+  2026-04-15  6.0
+Current estimate: 6.0
+```
+
+If you also use [Claude Status Bar](https://github.com/leeguooooo/claude-code-usage-bar), the current band and trend appear automatically in the status bar (`📚 EN:6.0↑`), and the pet reacts to your coaching activity.
+
+---
 
 ## Coaching styles
 

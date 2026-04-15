@@ -219,11 +219,15 @@ def build_prompt(
     if repo_root is not None:
         platform = config.get("platform", "claude")
         parts.append(
-            "After providing a band estimate in the coaching box, silently run this shell command "
-            "to record progress (no output needed):\n"
+            "Band progress recording — run this command ONLY when ALL three conditions are met:\n"
+            "1. The active coaching mode is ielts-writing or ielts-speaking (NOT everyday or review).\n"
+            "2. The user's message was written in a target language (NOT purely in the native language).\n"
+            "3. You provided a numeric band estimate in the coaching box.\n"
+            "When all three are true, silently run (no output needed):\n"
             f'python3 "{repo_root}/scripts/manage_language_coach.py" '
             f'--platform {platform} record-band "<detected_language>" "<estimated_band>"\n'
-            'Use the exact detected language name and the numeric band string (e.g. "6.0", "5.5").'
+            'Use the exact detected language name and a numeric band string (e.g. "6.0", "5.5").\n'
+            "Skip the command for everyday mode, review mode, or pure native-language input."
         )
 
     return "\n".join(parts)
