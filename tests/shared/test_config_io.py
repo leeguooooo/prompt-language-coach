@@ -7,6 +7,48 @@ from shared.config.io import load_config, save_config
 
 
 class ConfigIOTests(unittest.TestCase):
+    def test_load_config_accepts_multi_target_config(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "language-coach.json"
+            path.write_text(
+                json.dumps(
+                    {
+                        "nativeLanguage": "Chinese",
+                        "targetLanguage": "English",
+                        "goal": "everyday",
+                        "mode": "everyday",
+                        "style": "teaching",
+                        "responseLanguage": "native",
+                        "enabled": True,
+                        "targets": [
+                            {
+                                "targetLanguage": "English",
+                                "goal": "everyday",
+                                "mode": "everyday",
+                                "style": "teaching",
+                            },
+                            {
+                                "targetLanguage": "Japanese",
+                                "goal": "ielts",
+                                "mode": "ielts-speaking",
+                                "style": "concise",
+                                "targetBand": "7.0",
+                            },
+                        ],
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            config = load_config(path)
+
+        self.assertEqual(len(config["targets"]), 2)
+        self.assertEqual(config["targets"][0]["targetLanguage"], "English")
+        self.assertEqual(config["targets"][1]["targetLanguage"], "Japanese")
+        self.assertEqual(config["targets"][1]["mode"], "ielts-speaking")
+        self.assertEqual(config["targets"][1]["goal"], "ielts")
+        self.assertEqual(config["targets"][1]["responseLanguage"], "native")
+
     def test_load_config_normalizes_legacy_fields(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "language-coach.json"
@@ -31,6 +73,7 @@ class ConfigIOTests(unittest.TestCase):
         self.assertEqual(config["mode"], "everyday")
         self.assertEqual(config["responseLanguage"], "native")
         self.assertEqual(config["version"], 1)
+        self.assertEqual(config["targets"], [])
 
     def test_load_config_normalizes_ielts_mode_back_to_ielts_goal(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

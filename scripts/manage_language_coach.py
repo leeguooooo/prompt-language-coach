@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import sys
 from pathlib import Path
+from typing import Any
 
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -16,6 +17,16 @@ from shared.config.schema import (
     ALLOWED_MODES,
     ALLOWED_RESPONSE_LANGUAGES,
     ALLOWED_STYLES,
+)
+
+TARGET_OVERRIDE_KEYS = (
+    "goal",
+    "mode",
+    "style",
+    "responseLanguage",
+    "ieltsFocus",
+    "targetBand",
+    "currentLevel",
 )
 
 
@@ -55,6 +66,14 @@ def parse_args() -> argparse.Namespace:
         child = subparsers.add_parser(name)
         child.add_argument("value", choices=choices)
 
+    child = subparsers.add_parser("target-add")
+    child.add_argument("value")
+
+    child = subparsers.add_parser("target-remove")
+    child.add_argument("value")
+
+    subparsers.add_parser("target-list")
+
     return parser.parse_args()
 
 
@@ -69,6 +88,72 @@ def normalize_goal_state(config: dict[str, object]) -> None:
 
     if goal == "ielts" and mode == "everyday":
         config["mode"] = "ielts-speaking" if focus == "speaking" else "ielts-writing"
+
+
+def list_targets(config: dict[str, Any]) -> list[str]:
+    raw_targets = config.get("targets")
+    if isinstance(raw_targets, list):
+        return [
+            target["targetLanguage"]
+            for target in raw_targets
+            if isinstance(target, dict) and target.get("targetLanguage")
+        ]
+
+    target_language = config.get("targetLanguage")
+    if isinstance(target_language, str) and target_language:
+        return [target_language]
+    return []
+
+
+def _target_defaults(config: dict[str, Any], language: str) -> dict[str, Any]:
+    target = {"targetLanguage": language}
+    for key in TARGET_OVERRIDE_KEYS:
+        target[key] = config.get(key)
+    return target
+
+
+def add_target(config: dict[str, Any], language: str) -> bool:
+    current_targets = [
+        target
+        for target in config.get("targets", [])
+        if isinstance(target, dict) and target.get("targetLanguage")
+    ]
+
+    if not current_targets and config.get("targetLanguage"):
+        current_targets.append(_target_defaults(config, str(config["targetLanguage"])))
+
+    existing = {
+        str(target["targetLanguage"]).casefold()
+        for target in current_targets
+        if target.get("targetLanguage")
+    }
+    if language.casefold() in existing:
+        config["targets"] = current_targets
+        return False
+
+    current_targets.append(_target_defaults(config, language))
+    config["targets"] = current_targets
+    return True
+
+
+def remove_target(config: dict[str, Any], language: str) -> bool:
+    raw_targets = config.get("targets", [])
+    if not isinstance(raw_targets, list):
+        return False
+
+    remaining = [
+        target
+        for target in raw_targets
+        if not (
+            isinstance(target, dict)
+            and str(target.get("targetLanguage", "")).casefold() == language.casefold()
+        )
+    ]
+    removed = len(remaining) != len(raw_targets)
+    config["targets"] = remaining
+    if remaining and isinstance(remaining[0], dict) and remaining[0].get("targetLanguage"):
+        config["targetLanguage"] = remaining[0]["targetLanguage"]
+    return removed
 
 
 def apply_command(config: dict[str, object], args: argparse.Namespace) -> str | None:
@@ -112,6 +197,21 @@ def apply_command(config: dict[str, object], args: argparse.Namespace) -> str | 
     if args.command == "level":
         config["currentLevel"] = args.value
         return f"Current level updated to: {args.value}"
+    if args.command == "target-add":
+        added = add_target(config, args.value)
+        if added:
+            return f"Target added: {args.value}"
+        return f"Target already exists: {args.value}"
+    if args.command == "target-remove":
+        removed = remove_target(config, args.value)
+        if removed:
+            return f"Target removed: {args.value}"
+        return f"Target not found: {args.value}"
+    if args.command == "target-list":
+        targets = list_targets(config)
+        if targets:
+            return "\n".join(targets)
+        return "(no configured targets)"
     if args.command == "on":
         config["enabled"] = True
         return "Language coach active."
@@ -140,6 +240,7 @@ def format_status(
             f"IELTS focus:       {config['ieltsFocus']}",
             f"Target band:       {config['targetBand'] or '-'}",
             f"Current level:     {config['currentLevel'] or '-'}",
+            f"Targets:           {', '.join(list_targets(config)) or '-'}",
             f"Status:            {status}",
             f"Config file:       {path}",
         ]

@@ -86,6 +86,40 @@ python3 scripts/manage_language_coach.py --platform <platform> target "<lang>"
 
 Confirm: `Target language updated to: <lang>`
 
+### Multi-target management
+
+Use these commands to manage the `targets` list for auto-detected coaching across multiple target languages:
+
+#### target-add <lang>
+
+Run:
+
+```bash
+python3 scripts/manage_language_coach.py --platform <platform> target-add "<lang>"
+```
+
+This appends a new target profile using the current shared coaching settings as defaults.
+
+#### target-remove <lang>
+
+Run:
+
+```bash
+python3 scripts/manage_language_coach.py --platform <platform> target-remove "<lang>"
+```
+
+This removes the matching target profile from the multi-target list.
+
+#### target-list
+
+Run:
+
+```bash
+python3 scripts/manage_language_coach.py --platform <platform> target-list
+```
+
+Relay the printed target language list back to the user.
+
 ### style <mode>
 
 Valid values: `teaching`, `concise`, `translate`
@@ -211,6 +245,10 @@ Commands:
   setup              Run the setup wizard
   native <lang>      Set your native language
   target <lang>      Set the language you are learning
+  target-add <lang>  Add a target language profile to the multi-target list
+  target-remove <lang>
+                     Remove a target language profile from the multi-target list
+  target-list        List the configured multi-target languages
   style <mode>       Set coaching style: teaching / concise / translate
   response <mode>    Set response language: native / target
   goal <mode>        Set the coaching goal: everyday / ielts

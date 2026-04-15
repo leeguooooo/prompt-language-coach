@@ -4,8 +4,33 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from scripts.manage_language_coach import add_target, list_targets, remove_target
+
 
 class ManageLanguageCoachTests(unittest.TestCase):
+    def test_target_management_helpers(self) -> None:
+        config = {
+            "nativeLanguage": "Chinese",
+            "targetLanguage": "English",
+            "goal": "everyday",
+            "mode": "everyday",
+            "style": "teaching",
+            "responseLanguage": "native",
+            "enabled": True,
+            "ieltsFocus": "both",
+            "targetBand": "",
+            "currentLevel": "",
+            "targets": [],
+            "version": 1,
+        }
+
+        add_target(config, "Japanese")
+        self.assertEqual(list_targets(config), ["English", "Japanese"])
+
+        remove_target(config, "English")
+        self.assertEqual(list_targets(config), ["Japanese"])
+        self.assertEqual(config["targets"][0]["targetLanguage"], "Japanese")
+
     def test_status_reports_missing_config_as_not_configured(self):
         with tempfile.TemporaryDirectory() as tmp:
             home = Path(tmp)
