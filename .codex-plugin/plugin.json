@@ -1,0 +1,33 @@
+{
+  "name": "prompt-language-coach",
+  "version": "0.2.0",
+  "description": "Real-time language coaching with everyday and IELTS modes.",
+  "author": {
+    "name": "leeguooooo"
+  },
+  "homepage": "https://github.com/leeguooooo/prompt-language-coach",
+  "repository": "https://github.com/leeguooooo/prompt-language-coach",
+  "license": "MIT",
+  "keywords": [
+    "language-learning",
+    "ielts",
+    "writing",
+    "coaching"
+  ],
+  "skills": "../skills",
+  "interface": {
+    "displayName": "Prompt Language Coach",
+    "shortDescription": "Language coaching for everyday work and IELTS practice",
+    "longDescription": "Correct writing, teach more natural phrasing, and switch into IELTS-oriented writing or speaking modes.",
+    "developerName": "leeguooooo",
+    "category": "Education",
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "Use Prompt Language Coach to improve my English while I work.",
+      "Use Prompt Language Coach in IELTS writing mode."
+    ]
+  }
+}

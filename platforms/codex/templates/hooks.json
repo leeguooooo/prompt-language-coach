@@ -1,0 +1,14 @@
+{
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"/ABSOLUTE/PATH/TO/platforms/codex/hook_entry.py\""
+          }
+        ]
+      }
+    ]
+  }
+}
