@@ -1,7 +1,7 @@
 {
   "name": "language-coach",
   "description": "Real-time language coaching. Corrects your writing and provides natural expressions before every AI response. Supports any language pair.",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "author": {
     "name": "leeguooooo",
     "email": "leeguooooo@gmail.com"
