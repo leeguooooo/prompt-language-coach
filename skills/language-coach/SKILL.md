@@ -1,91 +1,208 @@
 ---
 name: language-coach
-description: Language coaching for every prompt. Use when the user runs /language-coach with any sub-command (setup, native, target, style, response, status, off, on). Routes to the correct action based on the argument provided.
+description: Language coaching for every prompt. Use when the user runs /language-coach with any sub-command (setup, native, target, style, response, goal, mode, focus, band, level, status, off, on). Routes to the correct action based on the argument provided.
 ---
 
-You are the language-coach command handler. Read the argument(s) passed to determine which sub-command to run.
+You are the `language-coach` command handler. Read the sub-command and run the matching repo-root CLI command.
+
+Default platform: `claude`
+Use `--platform codex` when the user explicitly asks for Codex setup or Codex-specific config.
+
+All commands below assume the current working directory is the repository root:
+
+```bash
+python3 scripts/manage_language_coach.py --platform <claude|codex> ...
+```
+
+---
+
+## Setup
+
+Ask these questions one at a time:
+
+1. `What is your native language? (for example: Chinese, Japanese, Spanish)`
+2. `What language are you learning? (for example: English, French, German)`
+3. `What is your main goal? (everyday / ielts)`
+4. `Which coaching style do you want? (teaching / concise / translate)`
+5. `Which response language should I use after coaching? (native / target)`
+
+If the user chooses `ielts`, ask these follow-ups one at a time:
+
+1. `Which IELTS mode do you want? (ielts-writing / ielts-speaking)`
+2. `What IELTS focus should I store? (writing / speaking / both)`
+3. `What target band are you aiming for? (optional)`
+4. `What is your current level? (optional)`
+
+Then run the matching commands in order:
+
+```bash
+python3 scripts/manage_language_coach.py --platform <platform> native "<native>"
+python3 scripts/manage_language_coach.py --platform <platform> target "<target>"
+python3 scripts/manage_language_coach.py --platform <platform> goal "<goal>"
+python3 scripts/manage_language_coach.py --platform <platform> style "<style>"
+python3 scripts/manage_language_coach.py --platform <platform> response "<response>"
+```
+
+If `goal` is `ielts`, also run:
+
+```bash
+python3 scripts/manage_language_coach.py --platform <platform> mode "<ielts-mode>"
+python3 scripts/manage_language_coach.py --platform <platform> focus "<focus>"
+python3 scripts/manage_language_coach.py --platform <platform> band "<target-band>"
+python3 scripts/manage_language_coach.py --platform <platform> level "<current-level>"
+```
+
+Finish by running:
+
+```bash
+python3 scripts/manage_language_coach.py --platform <platform> status
+```
+
+Confirm with a short summary of the stored configuration.
 
 ---
 
 ## Sub-commands
 
-### setup
-Interactive wizard. Ask these four questions one at a time:
-1. "What is your native language? (e.g. Chinese, Japanese, Spanish)"
-2. "What language are you learning? (e.g. English, French, German)"
-3. "Which coaching style would you like?
-   - teaching: show error reasons + corrected version + natural version
-   - concise: corrected version + natural version only
-   - translate: just give the target language version"
-4. "When I answer your actual questions, which language should I use?
-   - native (default): I respond in your native language
-   - target: I respond in your target language (recommended for advanced learners)"
-
-After collecting all four answers, write the config file:
-```
-python3 -c "import json,os; path=os.path.expanduser('~/.claude/language-coach.json'); json.dump({'native':'NATIVE','target':'TARGET','style':'STYLE','responseLanguage':'RESPONSELANG','enabled':True}, open(path,'w'), indent=2)"
-```
-(Replace NATIVE, TARGET, STYLE, RESPONSELANG with the user's answers.)
-
-Confirm: "✓ Language coach configured. Native: <native> → Target: <target> (style: <style>, responses in: <responseLanguage>)"
-
----
-
 ### native <lang>
-Read `~/.claude/language-coach.json` if it exists (default: {}), update the `"native"` field, write it back.
-```
-python3 -c "import json,os; p=os.path.expanduser('~/.claude/language-coach.json'); d=json.load(open(p)) if os.path.exists(p) else {}; d['native']='LANG'; json.dump(d,open(p,'w'),indent=2)"
-```
-Confirm: "✓ Native language updated to: <lang>"
 
----
+Run:
+
+```bash
+python3 scripts/manage_language_coach.py --platform <platform> native "<lang>"
+```
+
+Confirm: `Native language updated to: <lang>`
 
 ### target <lang>
-Read `~/.claude/language-coach.json` if it exists (default: {}), update the `"target"` field, write it back.
-```
-python3 -c "import json,os; p=os.path.expanduser('~/.claude/language-coach.json'); d=json.load(open(p)) if os.path.exists(p) else {}; d['target']='LANG'; json.dump(d,open(p,'w'),indent=2)"
-```
-Confirm: "✓ Target language updated to: <lang>"
 
----
+Run:
+
+```bash
+python3 scripts/manage_language_coach.py --platform <platform> target "<lang>"
+```
+
+Confirm: `Target language updated to: <lang>`
 
 ### style <mode>
-Valid values: `teaching`, `concise`, `translate`.
-If invalid, say: "Invalid style. Please choose one of: teaching, concise, translate."
-Otherwise update the `"style"` field and confirm: "✓ Style updated to: <mode>"
 
----
+Valid values: `teaching`, `concise`, `translate`
+
+Run:
+
+```bash
+python3 scripts/manage_language_coach.py --platform <platform> style "<mode>"
+```
+
+Confirm: `Style updated to: <mode>`
 
 ### response <mode>
-Valid values: `native`, `target`.
-Update the `"responseLanguage"` field and confirm: "✓ AI will now respond in <mode> language."
 
----
+Valid values: `native`, `target`
+
+Run:
+
+```bash
+python3 scripts/manage_language_coach.py --platform <platform> response "<mode>"
+```
+
+Confirm: `Responses will use: <mode>`
+
+### goal <mode>
+
+Valid values: `everyday`, `ielts`
+
+Run:
+
+```bash
+python3 scripts/manage_language_coach.py --platform <platform> goal "<mode>"
+```
+
+Notes:
+- `goal everyday` resets the active mode to `everyday`
+- `goal ielts` keeps the shared config in IELTS mode
+
+### mode <mode>
+
+Valid values: `everyday`, `ielts-writing`, `ielts-speaking`, `review`
+
+Run:
+
+```bash
+python3 scripts/manage_language_coach.py --platform <platform> mode "<mode>"
+```
+
+Notes:
+- IELTS modes automatically set `goal` to `ielts`
+- `mode everyday` switches `goal` back to `everyday`
+
+### focus <mode>
+
+Valid values: `writing`, `speaking`, `both`
+
+Run:
+
+```bash
+python3 scripts/manage_language_coach.py --platform <platform> focus "<mode>"
+```
+
+### band <score>
+
+Examples: `6.5`, `7.0`, `7.5`
+
+Run:
+
+```bash
+python3 scripts/manage_language_coach.py --platform <platform> band "<score>"
+```
+
+### level <text>
+
+Examples: `B1`, `band 5.5`, `upper-intermediate`
+
+Run:
+
+```bash
+python3 scripts/manage_language_coach.py --platform <platform> level "<text>"
+```
 
 ### status
-Read `~/.claude/language-coach.json`. If missing: "Language coach is not configured. Run /language-coach setup to get started."
-Otherwise display:
-  Native language:   <native>
-  Target language:   <target>
-  Style:             <style>
-  Response in:       <responseLanguage>
-  Status:            on / off
-  Config file:       ~/.claude/language-coach.json
 
----
+Run:
+
+```bash
+python3 scripts/manage_language_coach.py --platform <platform> status
+```
+
+Relay the formatted output back to the user.
 
 ### off
-Set `"enabled": false`. Confirm: "✓ Language coach paused. Run /language-coach on to resume."
 
----
+Run:
+
+```bash
+python3 scripts/manage_language_coach.py --platform <platform> off
+```
+
+Confirm: `Language coach paused.`
 
 ### on
-Set `"enabled": true`. Confirm: "✓ Language coach active."
+
+Run:
+
+```bash
+python3 scripts/manage_language_coach.py --platform <platform> on
+```
+
+Confirm: `Language coach active.`
 
 ---
 
-If no argument or unknown argument, show:
-```
+## Fallback Help
+
+If no argument or the command is unknown, show:
+
+```text
 Usage: /language-coach <command>
 
 Commands:
@@ -94,6 +211,11 @@ Commands:
   target <lang>      Set the language you are learning
   style <mode>       Set coaching style: teaching / concise / translate
   response <mode>    Set response language: native / target
+  goal <mode>        Set the coaching goal: everyday / ielts
+  mode <mode>        Set the coaching mode: everyday / ielts-writing / ielts-speaking / review
+  focus <mode>       Set IELTS focus: writing / speaking / both
+  band <score>       Set IELTS target band
+  level <text>       Set current level
   status             Show current configuration
   off                Pause coaching
   on                 Resume coaching
