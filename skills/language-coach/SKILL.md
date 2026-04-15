@@ -261,4 +261,6 @@ Commands:
   status             Show current configuration
   off                Pause coaching
   on                 Resume coaching
+
+See also: /language-coach:language-review  — analyze your progress data with stats and AI commentary
 ```
