@@ -19,6 +19,17 @@ def _box_title_for_mode(mode: str, detected_language: str | None = None) -> str:
     return "📚 Language Coaching"
 
 
+def _native_only_box_instruction(target_language: str) -> list[str]:
+    """Compact double-line box for pure native-language input (translation only)."""
+    return [
+        "Native-language-only box (use this when the user writes entirely in their native language):",
+        f"- Use '╔══ 🌐 {target_language} ══' as the opening line.",
+        "- Show only the single natural target-language version on one line, prefixed with '║ '.",
+        "- Close with '╚══════════════════════════════════'.",
+        "- Do NOT use the full coaching box or show multiple sections for pure native-language input.",
+    ]
+
+
 def _box_instruction(mode: str, detected_language: str | None = None) -> list[str]:
     title = _box_title_for_mode(mode, detected_language)
     opening_line = (
@@ -104,6 +115,7 @@ def build_prompt(config: dict[str, Any]) -> str:
                 ),
                 "Legacy single-target box framing:",
                 *_box_instruction(config["mode"]),
+                *_native_only_box_instruction("{DetectedTargetLanguage}"),
             ]
         )
     else:
@@ -132,6 +144,7 @@ def build_prompt(config: dict[str, Any]) -> str:
                 "Feedback sections to include before the actual answer:",
                 section_text,
                 *_box_instruction(mode),
+                *_native_only_box_instruction(config["targetLanguage"]),
             ]
         )
 
