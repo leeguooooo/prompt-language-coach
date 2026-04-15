@@ -371,6 +371,7 @@ Response language after coaching?      → native
 
 ## 相关链接
 
+- [Claude Status Bar](https://github.com/leeguooooo/claude-code-usage-bar) — 在状态栏显示 IELTS 分数进度（`📚 EN:6.0↑`），与 Claude 使用量、上下文用量并排展示。自动读取本插件写入的 `~/.claude/language-progress.json`。
 - [Claude Code 文档](https://docs.anthropic.com/en/docs/claude-code)
 - [Claude Code 钩子指南](https://docs.anthropic.com/en/docs/claude-code/hooks)
 - [Claude Code 插件市场](https://docs.anthropic.com/en/docs/claude-code/plugins)

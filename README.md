@@ -371,6 +371,7 @@ Switch mode anytime:
 
 ## Related
 
+- [Claude Status Bar](https://github.com/leeguooooo/claude-code-usage-bar) — shows your IELTS band progress (`📚 EN:6.0↑`) alongside Claude rate-limit and context usage in the status bar. Reads `~/.claude/language-progress.json` written by this plugin.
 - [Claude Code documentation](https://docs.anthropic.com/en/docs/claude-code)
 - [Claude Code hooks guide](https://docs.anthropic.com/en/docs/claude-code/hooks)
 - [Claude Code plugin marketplace](https://docs.anthropic.com/en/docs/claude-code/plugins)
