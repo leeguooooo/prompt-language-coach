@@ -8,6 +8,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 ---
+<img width="1662" height="894" alt="image" src="https://github.com/user-attachments/assets/1d0dfab7-f1d0-47cb-a7b3-5737bab14346" />
 
 ## What it does
 
