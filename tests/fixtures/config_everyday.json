@@ -1,0 +1,13 @@
+{
+  "nativeLanguage": "Chinese",
+  "targetLanguage": "English",
+  "goal": "everyday",
+  "mode": "everyday",
+  "style": "teaching",
+  "responseLanguage": "native",
+  "enabled": true,
+  "ieltsFocus": "both",
+  "targetBand": "",
+  "currentLevel": "",
+  "version": 1
+}
