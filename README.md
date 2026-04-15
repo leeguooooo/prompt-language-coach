@@ -1,5 +1,7 @@
 # prompt-language-coach
 
+> [English](README.md) | [中文](README.zh-CN.md)
+
 > Real-time language coaching inside your AI editor — automatically correct your writing and learn natural expressions on every prompt.
 
 [![Claude Code Plugin](https://img.shields.io/badge/Claude%20Code-Plugin-blue)](https://github.com/leeguooooo/prompt-language-coach)

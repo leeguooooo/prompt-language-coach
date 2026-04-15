@@ -6,6 +6,15 @@ from shared.prompts.build_prompt import build_prompt
 
 
 FIXTURES = Path("tests/fixtures")
+MIXED_LANGUAGE_GUIDANCE = (
+    "If the user mixes native-language words or phrases into their "
+    "target-language message (because they cannot express the full meaning "
+    "in the target language), provide one complete natural target-language "
+    "version of the entire message — covering both what was written in the "
+    "target language and what was written in the native language. Then "
+    "explain what the native-language portions should have been in the "
+    "target language."
+)
 
 
 class PromptBuilderTests(unittest.TestCase):
@@ -94,6 +103,7 @@ class PromptBuilderTests(unittest.TestCase):
         self.assertIn("│ ", prompt)
         self.assertIn("╰─────────────────────────────────────", prompt)
         self.assertNotIn("Band estimate", prompt)
+        self.assertIn(MIXED_LANGUAGE_GUIDANCE, prompt)
         self.assertIn("Deliver all coaching feedback in Chinese.", prompt)
         self.assertNotIn("Detect which target language the user wrote in", prompt)
 
@@ -106,6 +116,7 @@ class PromptBuilderTests(unittest.TestCase):
         self.assertIn("Band estimate", prompt)
         self.assertIn("Reusable pattern", prompt)
         self.assertIn("Mini drill", prompt)
+        self.assertIn(MIXED_LANGUAGE_GUIDANCE, prompt)
         self.assertIn("╭─ 📚 IELTS Writing Coaching ─", prompt)
 
     def test_ielts_speaking_prompt_avoids_fake_pronunciation_scoring(self) -> None:
@@ -116,6 +127,7 @@ class PromptBuilderTests(unittest.TestCase):
         prompt = build_prompt(config)
 
         self.assertIn("Do not claim to score pronunciation from text alone", prompt)
+        self.assertIn(MIXED_LANGUAGE_GUIDANCE, prompt)
         self.assertIn("╭─ 📚 IELTS Speaking Coaching ─", prompt)
 
 
