@@ -221,19 +221,19 @@ Responsibilities:
 
 - package a `.codex-plugin/plugin.json`
 - provide `skills/` for setup and management commands
-- provide a user-facing always-on experience through installation guidance plus persistent instruction surfaces
+- provide a user-facing always-on experience through Codex-native plugin installation plus a Codex hook configuration path
 
 Codex-specific UX:
 
 - plugin install path is official and discoverable
 - command surface mirrors Claude conceptually but follows Codex naming and plugin conventions
-- always-on behavior is achieved through Codex-native persistent instruction mechanisms rather than Claude hook emulation
+- automatic coaching is achieved through Codex-native `UserPromptSubmit` hook support rather than Claude compatibility shims
 
 ### Important runtime distinction
 
 Claude automatic coaching comes from hooks.
 
-Codex automatic coaching should come from plugin-installed persistent instructions plus a skill-driven configuration flow. The design should not depend on a Claude-style submit hook existing in Codex.
+Codex automatic coaching should come from Codex-native hooks plus a skill-driven configuration flow. The design should not treat Codex as if it lacked a native submit-time context injection surface.
 
 ## Shared Core Design
 
@@ -249,6 +249,7 @@ V1 includes:
 - shared pedagogy and prompt assembly
 - Claude adapter migration onto the shared core
 - Codex plugin adapter
+- Codex hook adapter
 - `everyday`, `ielts-writing`, and `ielts-speaking` modes
 
 Post-v1 includes:
@@ -261,11 +262,13 @@ Post-v1 includes:
 
 ```text
 .claude-plugin/
+.codex-plugin/
 hooks/
 cursor-rules/
 platforms/
   claude/
   codex/
+  codex-hooks/
 shared/
   config/
   pedagogy/
@@ -397,7 +400,7 @@ The implementation plan should include:
 - schema validation tests
 - prompt assembly tests by mode
 - Claude adapter regression tests to preserve existing behavior
-- Codex adapter tests for setup, command handling, and generated persistent instructions
+- Codex adapter tests for setup, command handling, generated hook configuration, and hook payload assembly
 - golden tests for IELTS feedback templates
 - tone and length checks for `everyday` mode so feedback stays compact
 
@@ -422,7 +425,7 @@ Build one learning product with:
 - one shared teaching core
 - one normalized config model
 - a Claude hook adapter
-- a Codex plugin adapter
+- a Codex plugin plus hook adapter
 - lightweight default coaching
 - explicit IELTS writing, speaking, and review modes
 
