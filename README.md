@@ -38,23 +38,40 @@ Works for **any language pair**: Chinese → English, Japanese → English, Span
 
 ## Demo
 
-**You write:**
+Every message you send gets coached **before** Claude answers. The coaching appears in a visual box so it never blends with the actual answer.
+
+**Everyday mode** — you write:
 > "I want to know how can i to fix this bug in my code"
 
-**Claude coaches first:**
+**Claude coaches first, then answers:**
 ```
-English correction:
-> "I want to know how can i to fix this bug in my code"
+╭─ 📚 English Coaching ─────────────────────
+│ 原文：   "I want to know how can i to fix this bug"
+│ 纠正：   "I want to know how I can fix this bug"
+│ 更自然： "How do I fix this bug?" / "Can you help me debug this?"
+│ 关键点： modal verb + bare infinitive — "can fix", not "can to fix"
+╰────────────────────────────────────────────
 
-Key issues:
-- "how can i to fix" → remove "to" after modal verb: "how I can fix"
-- "i" should be capitalized: "I"
-
-Corrected: "I want to know how I can fix this bug in my code."
-More natural: "How do I fix this bug?" / "Can you help me debug this?"
+(Claude's actual answer follows here)
 ```
 
-Then Claude answers your actual question.
+**IELTS Writing mode** — you write:
+> "The environment is very important and we should protect it because many reason."
+
+**Claude coaches:**
+```
+╭─ 📚 English · IELTS Writing ──────────────
+│ Band 估分：  5.0–5.5
+│ 亮点：       主题明确，有因果逻辑意识
+│ 扣分项：     "many reason" → "many reasons"；论点空洞，缺乏具体论据
+│ 高分改写：   "Environmental protection is critical, as unchecked
+│              pollution threatens biodiversity and public health."
+│ 可复用句式： "[Topic] is critical, as [specific consequence]."
+│ 练习：       用上面句式写一句关于 education 的句子
+╰────────────────────────────────────────────
+
+(Claude's actual answer follows here)
+```
 
 ---
 
@@ -66,7 +83,7 @@ Then Claude answers your actual question.
 
 ```
 /plugin marketplace add leeguooooo/plugins
-/plugin install prompt-language-coach@leeguooooo-plugins
+/plugin install language-coach@leeguooooo-plugins
 /reload-plugins
 /language-coach:language-coach setup
 ```
@@ -365,104 +382,90 @@ Built by [leeguooooo](https://github.com/leeguooooo) — a senior frontend engin
 
 ---
 
+## Real-world walkthrough
+
+A complete example: Chinese high school student learning both English and Japanese for IELTS (target band 6.5).
+
+### 1. Install and run setup
+
+```
+/plugin marketplace add leeguooooo/plugins
+/plugin install language-coach@leeguooooo-plugins
+/reload-plugins
+/language-coach:language-coach setup
+```
+
+The wizard asks one question at a time:
+
+```
+What is your native language?          → Chinese
+What language are you learning?        → english, japanese
+What is your main goal?                → ielts
+Which IELTS mode?                      → ielts-writing and ielts-speaking
+Target band?                           → 6.5
+Current level?                         → 高中生水平
+Coaching style?                        → teaching
+Response language after coaching?      → native
+```
+
+Final config stored at `~/.claude/language-coach.json`:
+
+| Field | Value |
+|---|---|
+| Native language | Chinese |
+| Target languages | English + Japanese (auto-detected) |
+| Goal | IELTS |
+| Mode | IELTS Writing |
+| Style | Teaching (detailed) |
+| Response language | Chinese (native) |
+| Target band | 6.5 |
+| Current level | 高中生水平 |
+
+### 2. Reload and write
+
+```
+/reload-plugins
+```
+
+From now on every message is coached automatically. The coaching box appears **before** Claude's actual answer, clearly separated.
+
+**Writing English with a grammar error:**
+
+User types: `"ok, It's work well."`
+
+```
+╭─ 📚 English · IELTS Writing ──────────────
+│ Band 估分：  这句较短，但有语法错误
+│ 亮点：       用了副词 "well" 修饰动词 ✓
+│ 扣分项：     "It's work well" — it's = it is，后面不能接动词原形
+│ 高分改写：   "It works well." / "It's working well."
+│ 可复用句式： It + works / is working + adverb — 描述某物正常运转
+│ 练习：       "The system ___ well after the update." — works 还是 is working？
+╰─────────────────────────────────────────────
+
+（Claude 的实际回答在这里，无边框）
+```
+
+**Writing Japanese** triggers the same structure with a Japanese-specific header:
+
+```
+╭─ 📚 Japanese · IELTS Writing ─────────────
+│ ...
+╰─────────────────────────────────────────────
+```
+
+Switch mode anytime:
+
+```
+/language-coach:language-coach mode everyday       # back to everyday coaching
+/language-coach:language-coach mode ielts-writing  # back to IELTS
+/language-coach:language-coach status              # show current config
+```
+
+---
+
 ## Related
 
 - [Claude Code documentation](https://docs.anthropic.com/en/docs/claude-code)
 - [Claude Code hooks guide](https://docs.anthropic.com/en/docs/claude-code/hooks)
 - [Claude Code plugin marketplace](https://docs.anthropic.com/en/docs/claude-code/plugins)
-
-```shell
-
-/language-coach:language-coach setup
-
-⏺ 你的母语是什么？（例如：Chinese、Japanese、Spanish）
-
-❯ chinese
-
-⏺ 你正在学习哪种语言？（例如：English、French、Japanese）
-
-❯ english, japanese
-
-⏺ 你的主要学习目标是什么？（everyday / ielts）
-
-❯ ielts
-
-⏺ 你想要哪种 IELTS 模式？（ielts-writing / ielts-speaking）
-
-❯ ielts-writing and ielts-speaking
-
-⏺ 目标雅思分数是多少？（可选，例如：6.5、7.0，直接回车跳过）
-
-❯ 6.5
-
-⏺ 你目前的英语水平大概是？（可选，例如：B1、band 5.5，直接回车跳过）
-
-❯ 高中生水平
-
-⏺ 你想要哪种 coaching 风格？（teaching 详细讲解 / concise 只给纠正 / translate 只给翻译）
-
-❯ teaching
-
-⏺ Coaching 之后，我用哪种语言回答你的实际问题？（native 母语中文 / target 目标语言英文）
-
-❯ native
-
-⏺ 收到！开始配置：
-
-⏺ Bash(\
-      python3 scripts/manage_language_coach.py --platform claude native "Chinese" && \…)
-  ⎿  Native language updated to: Chinese
-     Config file: /Users/leo/.claude/language-coach.json
-     Target language updated to: English
-     … +17 lines (ctrl+o to expand)
-
-⏺ Bash(python3 scripts/manage_language_coach.py --platform claude status)
-  ⎿  Platform:          claude
-     Native language:   Chinese
-     Target language:   English
-     … +10 lines (ctrl+o to expand)
-
-⏺ 配置完成！
-
-  ┌──────────┬────────────────────────────────┐
-  │   项目   │              设置              │
-  ├──────────┼────────────────────────────────┤
-  │ 母语     │ Chinese                        │
-  ├──────────┼────────────────────────────────┤
-  │ 目标语言 │ English + Japanese（自动识别） │
-  ├──────────┼────────────────────────────────┤
-  │ 目标     │ IELTS                          │
-  ├──────────┼────────────────────────────────┤
-  │ 模式     │ IELTS Writing（兼顾 Speaking） │
-  ├──────────┼────────────────────────────────┤
-  │ 风格     │ Teaching（详细讲解）           │
-  ├──────────┼────────────────────────────────┤
-  │ 回答语言 │ 中文                           │
-  ├──────────┼────────────────────────────────┤
-  │ 目标分数 │ 6.5                            │
-  ├──────────┼────────────────────────────────┤
-  │ 当前水平 │ 高中生水平                     │
-  └──────────┴────────────────────────────────┘
-
-  现在写英文时会出现 ╭─ 📚 English · IELTS Writing ─ 的 coaching box，写日文时自动切换为 ╭─ 📚 Japanese · IELTS Writing ─。运行 /reload-plugins 让新配置生效。
-
-/reload-plugins
-  ⎿  Reloaded: 5 plugins · 10 skills · 7 agents · 5 hooks · 0 plugin MCP servers · 1 plugin LSP server
-
-❯ ok, It's work well.
-
-⏺ ╭─ 📚 English · IELTS Writing ──────────
-  │ Band 估分： 这句较短，单独难评分，但有语法错误
-  │ 亮点： 用了副词 "well" 修饰动词 ✓
-  │ 扣分项： "It's work well" — it's = it is，后面不能接动词原形
-  │ 高分改写： "It's working well." / "It works well."
-  │ 可复用句式： It + works/is working + adverb — 描述功能正常运转
-  │ 练习： "The system ___ well after the update." 填 works 还是 is working？
-  ╰─────────────────────────────────────────
-
-  ---
-  一切正常！插件 0.4.1，IELTS 模式已生效，hook 也在正确注入双语配置。
-
-  今天整个 language-coach 从 v0.2.0 进化到了 v0.4.1，功能完整，可以正式使用了。
-
-```
