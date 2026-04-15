@@ -3,7 +3,9 @@ import subprocess
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
+from scripts import manage_language_coach
 from scripts.manage_language_coach import add_target, list_targets, remove_target
 
 
@@ -119,6 +121,80 @@ class ManageLanguageCoachTests(unittest.TestCase):
             updated = json.loads(config_path.read_text(encoding="utf-8"))
             self.assertEqual(updated["mode"], "ielts-writing")
             self.assertEqual(updated["goal"], "ielts")
+
+    def test_target_add_reloads_current_config_and_inherits_goal_mode(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            config_path = Path(tmp) / "language-coach.json"
+            config_path.write_text(
+                json.dumps(
+                    {
+                        "nativeLanguage": "Chinese",
+                        "targetLanguage": "English",
+                        "goal": "ielts",
+                        "mode": "ielts-writing",
+                        "style": "teaching",
+                        "responseLanguage": "target",
+                        "enabled": True,
+                        "ieltsFocus": "writing",
+                        "targetBand": "7.0",
+                        "currentLevel": "6.0",
+                        "version": 1,
+                    }
+                ),
+                encoding="utf-8",
+            )
+            stale_loaded_config = {
+                "nativeLanguage": "Chinese",
+                "targetLanguage": "English",
+                "goal": "everyday",
+                "mode": "everyday",
+                "style": "teaching",
+                "responseLanguage": "native",
+                "enabled": True,
+                "ieltsFocus": "both",
+                "targetBand": "",
+                "currentLevel": "",
+                "targets": [],
+                "version": 1,
+            }
+            disk_loaded_config = json.loads(config_path.read_text(encoding="utf-8"))
+            saved_config: dict[str, object] = {}
+
+            def capture_save(path: Path, config: dict[str, object]) -> None:
+                self.assertEqual(path, config_path)
+                saved_config.clear()
+                saved_config.update(json.loads(json.dumps(config)))
+
+            with (
+                mock.patch(
+                    "scripts.manage_language_coach.load_config",
+                    side_effect=[stale_loaded_config, disk_loaded_config],
+                ),
+                mock.patch("scripts.manage_language_coach.save_config", side_effect=capture_save),
+                mock.patch(
+                    "sys.argv",
+                    [
+                        "manage_language_coach.py",
+                        "--config",
+                        str(config_path),
+                        "target-add",
+                        "Japanese",
+                    ],
+                ),
+            ):
+                exit_code = manage_language_coach.main()
+
+            self.assertEqual(exit_code, 0)
+            japanese_target = next(
+                target
+                for target in saved_config["targets"]
+                if target["targetLanguage"] == "Japanese"
+            )
+            self.assertEqual(japanese_target["goal"], "ielts")
+            self.assertEqual(japanese_target["mode"], "ielts-writing")
+            self.assertEqual(japanese_target["ieltsFocus"], "writing")
+            self.assertEqual(japanese_target["targetBand"], "7.0")
+            self.assertEqual(japanese_target["currentLevel"], "6.0")
 
 
 if __name__ == "__main__":

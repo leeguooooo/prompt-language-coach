@@ -19,14 +19,16 @@ from shared.config.schema import (
     ALLOWED_STYLES,
 )
 
-TARGET_OVERRIDE_KEYS = (
+TARGET_INHERIT_KEYS = (
     "goal",
     "mode",
-    "style",
-    "responseLanguage",
     "ieltsFocus",
     "targetBand",
     "currentLevel",
+)
+TARGET_FALLBACK_KEYS = (
+    "style",
+    "responseLanguage",
 )
 
 
@@ -107,7 +109,9 @@ def list_targets(config: dict[str, Any]) -> list[str]:
 
 def _target_defaults(config: dict[str, Any], language: str) -> dict[str, Any]:
     target = {"targetLanguage": language}
-    for key in TARGET_OVERRIDE_KEYS:
+    for key in TARGET_INHERIT_KEYS:
+        target[key] = config.get(key)
+    for key in TARGET_FALLBACK_KEYS:
         target[key] = config.get(key)
     return target
 
@@ -156,7 +160,9 @@ def remove_target(config: dict[str, Any], language: str) -> bool:
     return removed
 
 
-def apply_command(config: dict[str, object], args: argparse.Namespace) -> str | None:
+def apply_command(
+    config: dict[str, object], args: argparse.Namespace, path: Path | None = None
+) -> str | None:
     if args.command == "native":
         config["nativeLanguage"] = args.value
         return f"Native language updated to: {args.value}"
@@ -198,6 +204,10 @@ def apply_command(config: dict[str, object], args: argparse.Namespace) -> str | 
         config["currentLevel"] = args.value
         return f"Current level updated to: {args.value}"
     if args.command == "target-add":
+        if path is not None:
+            current_config = load_config(path)
+            config.clear()
+            config.update(current_config)
         added = add_target(config, args.value)
         if added:
             return f"Target added: {args.value}"
@@ -257,7 +267,7 @@ def main() -> int:
         print(format_status(config, path, args.platform, configured))
         return 0
 
-    message = apply_command(config, args)
+    message = apply_command(config, args, path)
     save_config(path, config)
     if message is not None:
         print(message)
