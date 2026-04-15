@@ -1,8 +1,45 @@
 from __future__ import annotations
 
-from typing import Any
+import json
+from pathlib import Path
+from typing import Any, Optional
 
 from shared.pedagogy.modes import guidance_for_mode, sections_for_mode
+
+
+def _progress_note(progress_path: str) -> Optional[str]:
+    """Return a brief progress note string, or None if no data is available."""
+    path = Path(progress_path)
+    if not path.exists():
+        return None
+    try:
+        data: dict[str, Any] = json.loads(path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        return None
+    if not data:
+        return None
+
+    lines = ["User's recent writing level history:"]
+    for language in sorted(data.keys()):
+        entry = data[language]
+        estimates: list[dict[str, str]] = entry.get("estimates", [])
+        current_band = entry.get("currentBand")
+        recent = estimates[-3:]
+        if not recent:
+            lines.append(f"- {language}: no data yet")
+        elif len(recent) == 1:
+            lines.append(f"- {language}: current estimate {current_band}")
+        else:
+            prev_band = recent[-2].get("band")
+            if prev_band and current_band and prev_band != current_band:
+                lines.append(
+                    f"- {language}: current estimate {current_band} (up from {prev_band} last session)"
+                    if float(current_band) > float(prev_band)
+                    else f"- {language}: current estimate {current_band} (down from {prev_band} last session)"
+                )
+            else:
+                lines.append(f"- {language}: current estimate {current_band}")
+    return "\n".join(lines)
 
 
 def _box_title_for_mode(mode: str, detected_language: str | None = None) -> str:
@@ -88,7 +125,11 @@ def _target_summary(
     return lines
 
 
-def build_prompt(config: dict[str, Any]) -> str:
+def build_prompt(
+    config: dict[str, Any],
+    repo_root: Optional[str] = None,
+    progress_path: Optional[str] = None,
+) -> str:
     targets = _target_profiles(config)
     if targets:
         base = [
@@ -155,9 +196,16 @@ def build_prompt(config: dict[str, Any]) -> str:
             ]
         )
 
-    return "\n".join(
-        base
-        + [
+    parts: list[str] = []
+
+    if progress_path is not None:
+        note = _progress_note(progress_path)
+        if note is not None:
+            parts.append(note)
+
+    parts.extend(base)
+    parts.extend(
+        [
             f"Deliver all coaching feedback in {config['nativeLanguage']}.",
             _response_instruction(config),
             (
@@ -167,3 +215,15 @@ def build_prompt(config: dict[str, Any]) -> str:
             ),
         ]
     )
+
+    if repo_root is not None:
+        platform = config.get("platform", "claude")
+        parts.append(
+            "After providing a band estimate in the coaching box, silently run this shell command "
+            "to record progress (no output needed):\n"
+            f'python3 "{repo_root}/scripts/manage_language_coach.py" '
+            f'--platform {platform} record-band "<detected_language>" "<estimated_band>"\n'
+            'Use the exact detected language name and the numeric band string (e.g. "6.0", "5.5").'
+        )
+
+    return "\n".join(parts)

@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import argparse
+import datetime
+import json
 import sys
 from pathlib import Path
 from typing import Any
@@ -42,6 +44,85 @@ def resolve_default_config(platform: str) -> Path:
     return home / ".claude" / "language-coach.json"
 
 
+def resolve_progress_path(platform: str) -> Path:
+    home = Path.home()
+    if platform == "codex":
+        return home / ".codex" / "language-progress.json"
+    if platform == "cursor":
+        return home / ".cursor" / "language-progress.json"
+    return home / ".claude" / "language-progress.json"
+
+
+def _load_progress(progress_path: Path) -> dict[str, Any]:
+    if progress_path.exists():
+        try:
+            return json.loads(progress_path.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, OSError):
+            pass
+    return {}
+
+
+def _save_progress(progress_path: Path, data: dict[str, Any]) -> None:
+    progress_path.parent.mkdir(parents=True, exist_ok=True)
+    progress_path.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+
+
+def cmd_record_band(args: argparse.Namespace) -> int:
+    progress_path = resolve_progress_path(args.platform)
+    data = _load_progress(progress_path)
+
+    language = args.language
+    band = args.band
+    today = datetime.date.today().isoformat()
+
+    entry = data.setdefault(language, {"estimates": [], "currentBand": None})
+    estimates: list[dict[str, str]] = entry.get("estimates", [])
+
+    # Overwrite existing entry for the same date (idempotent)
+    replaced = False
+    for i, est in enumerate(estimates):
+        if est.get("date") == today:
+            estimates[i] = {"date": today, "band": band}
+            replaced = True
+            break
+    if not replaced:
+        estimates.append({"date": today, "band": band})
+
+    entry["estimates"] = estimates
+    entry["currentBand"] = band
+    _save_progress(progress_path, data)
+    print(f"Recorded: {language} band {band} on {today}")
+    return 0
+
+
+def cmd_progress(args: argparse.Namespace) -> int:
+    progress_path = resolve_progress_path(args.platform)
+    data = _load_progress(progress_path)
+
+    filter_language = getattr(args, "language", None)
+    languages = [filter_language] if filter_language else sorted(data.keys())
+
+    if not languages or (filter_language and filter_language not in data):
+        lang_label = filter_language or "any language"
+        print(f"No progress data found for {lang_label}.")
+        return 0
+
+    for lang in languages:
+        entry = data.get(lang, {})
+        estimates: list[dict[str, str]] = entry.get("estimates", [])
+        current_band = entry.get("currentBand")
+        recent = estimates[-5:]
+        print(f"{lang} progress (last {len(recent)} session{'s' if len(recent) != 1 else ''}):")
+        if recent:
+            for est in recent:
+                print(f"  {est['date']}  {est['band']}")
+        else:
+            print("  (no data yet)")
+        print(f"Current estimate: {current_band if current_band is not None else '-'}")
+        print()
+    return 0
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Manage language coach config for Claude or Codex."
@@ -78,6 +159,15 @@ def parse_args() -> argparse.Namespace:
     child.add_argument("value")
 
     subparsers.add_parser("target-list")
+
+    child = subparsers.add_parser("record-band", help="Record an IELTS band estimate for a language.")
+    child.add_argument("language", help="Language name, e.g. English")
+    child.add_argument("band", help="Band score, e.g. 5.5")
+
+    child = subparsers.add_parser("progress", help="Show recent band history.")
+    child.add_argument("language", nargs="?", default=None, help="Optional language to filter by")
+
+    subparsers.add_parser("progress-path", help="Print the progress file path for the current platform.")
 
     return parser.parse_args()
 
@@ -318,6 +408,15 @@ def sync_claude_md(config: dict[str, Any], platform: str) -> None:
 
 def main() -> int:
     args = parse_args()
+
+    if args.command == "record-band":
+        return cmd_record_band(args)
+    if args.command == "progress":
+        return cmd_progress(args)
+    if args.command == "progress-path":
+        print(resolve_progress_path(args.platform))
+        return 0
+
     path = Path(args.config).expanduser() if args.config else resolve_default_config(args.platform)
     configured = path.exists()
     config = load_config(path)

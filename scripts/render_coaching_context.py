@@ -14,6 +14,15 @@ from shared.config.io import load_config
 from shared.prompts.build_prompt import build_prompt
 
 
+def _resolve_progress_path(platform: str) -> Path:
+    home = Path.home()
+    if platform == "codex":
+        return home / ".codex" / "language-progress.json"
+    if platform == "cursor":
+        return home / ".cursor" / "language-progress.json"
+    return home / ".claude" / "language-progress.json"
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("--platform", choices={"claude", "codex", "cursor"}, required=True)
@@ -27,7 +36,8 @@ def main() -> int:
     if not config["enabled"]:
         return 0
 
-    coaching_text = build_prompt(config)
+    progress_file = _resolve_progress_path(args.platform)
+    coaching_text = build_prompt(config, repo_root=str(REPO_ROOT), progress_path=str(progress_file))
 
     if args.platform == "cursor":
         payload = {"additional_context": coaching_text}

@@ -26,7 +26,7 @@ class ClaudeHookOutputTests(unittest.TestCase):
             "UserPromptSubmit",
         )
         self.assertIn(
-            "Language coaching preference",
+            "[MANDATORY]",
             payload["hookSpecificOutput"]["additionalContext"],
         )
 
