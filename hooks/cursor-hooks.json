@@ -1,0 +1,9 @@
+{
+  "hooks": {
+    "sessionStart": [
+      {
+        "command": "bash \"${CURSOR_PLUGIN_ROOT}/hooks/cursor-language-coach.sh\""
+      }
+    ]
+  }
+}

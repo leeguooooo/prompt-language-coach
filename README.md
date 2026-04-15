@@ -82,6 +82,24 @@ Every message you send gets coached **before** Claude answers. The coaching appe
 /language-coach:language-coach setup
 ```
 
+### Cursor
+
+**Prerequisites:** `python3`
+
+Install from the Cursor plugin marketplace, or add the marketplace repo directly:
+
+1. Open **Cursor Settings → Plugins → Marketplace**
+2. Add marketplace: `leeguooooo/plugins`
+3. Install **language-coach**
+
+Then run the setup command in Cursor's AI panel:
+
+```
+/language-coach setup
+```
+
+The setup wizard asks your native language, target language, goal, style, and response language — same as Claude Code — and stores config at `~/.cursor/language-coach.json`.
+
 ---
 
 ## Setup and usage
@@ -186,17 +204,21 @@ Legacy `native` / `target` keys are automatically normalized into the current sc
 
 ## How it works
 
-Claude renders the coaching context through the shared Python core:
+Both Claude Code and Cursor render the coaching context through the shared Python core:
 
 1. `shared/config/` loads and normalizes platform config
 2. `shared/pedagogy/modes.py` selects the feedback shape for the active mode
 3. `shared/prompts/build_prompt.py` builds the coaching instruction text
-4. `scripts/render_coaching_context.py` emits hook JSON with `hookSpecificOutput.additionalContext`
+4. `scripts/render_coaching_context.py` emits the hook JSON payload
 
-The Claude hook (`hooks/language-coach.sh`) exits silently — no coaching, no crash — when:
+**Claude Code** uses a `UserPromptSubmit` hook (`hooks/language-coach.sh`) — coaching fires on every prompt via `hookSpecificOutput.additionalContext`.
+
+**Cursor** uses a `sessionStart` hook (`hooks/cursor-language-coach.sh`) — coaching context is injected once at session start via `additional_context`.
+
+Both hooks exit silently — no coaching, no crash — when:
 
 - `python3` is not installed
-- `~/.claude/language-coach.json` does not exist yet
+- The platform config file does not exist yet (`~/.claude/language-coach.json` or `~/.cursor/language-coach.json`)
 - `enabled` is `false`
 
 ---
@@ -218,9 +240,9 @@ Most language apps are separate tools that pull you away from your work. This pl
 
 ## Manual install
 
-### Claude
+### Claude Code
 
-If you prefer to install Claude manually, clone the repo and add the hook to your `~/.claude/settings.json`:
+Clone the repo and add the hook to your `~/.claude/settings.json`:
 
 ```json
 {
@@ -240,6 +262,16 @@ If you prefer to install Claude manually, clone the repo and add the hook to you
 ```
 
 Then create `~/.claude/language-coach.json` with your config.
+
+### Cursor
+
+Clone the repo. Cursor picks up the plugin automatically from `.cursor-plugin/plugin.json` if the repo is placed in `~/.cursor/plugins/local/language-coach`. The hook reads config from `~/.cursor/language-coach.json`.
+
+Run setup from the Cursor AI panel:
+
+```
+/language-coach setup
+```
 
 ---
 

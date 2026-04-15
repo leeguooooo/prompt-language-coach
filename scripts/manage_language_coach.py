@@ -36,6 +36,8 @@ def resolve_default_config(platform: str) -> Path:
     home = Path.home()
     if platform == "codex":
         return home / ".codex" / "language-coach.json"
+    if platform == "cursor":
+        return home / ".cursor" / "language-coach.json"
     return home / ".claude" / "language-coach.json"
 
 
@@ -43,7 +45,7 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Manage language coach config for Claude or Codex."
     )
-    parser.add_argument("--platform", choices=("claude", "codex"), default="claude")
+    parser.add_argument("--platform", choices=("claude", "codex", "cursor"), default="claude")
     parser.add_argument(
         "--config",
         help="Optional explicit config path. Defaults to the platform-specific location.",

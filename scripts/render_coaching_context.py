@@ -16,7 +16,7 @@ from shared.prompts.build_prompt import build_prompt
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--platform", choices={"claude", "codex"}, required=True)
+    parser.add_argument("--platform", choices={"claude", "codex", "cursor"}, required=True)
     parser.add_argument("--config", required=True)
     return parser.parse_args()
 
@@ -27,12 +27,17 @@ def main() -> int:
     if not config["enabled"]:
         return 0
 
-    payload = {
-        "hookSpecificOutput": {
-            "hookEventName": "UserPromptSubmit",
-            "additionalContext": build_prompt(config),
+    coaching_text = build_prompt(config)
+
+    if args.platform == "cursor":
+        payload = {"additional_context": coaching_text}
+    else:
+        payload = {
+            "hookSpecificOutput": {
+                "hookEventName": "UserPromptSubmit",
+                "additionalContext": coaching_text,
+            }
         }
-    }
     print(json.dumps(payload, ensure_ascii=False))
     return 0
 

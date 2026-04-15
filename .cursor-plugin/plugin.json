@@ -1,0 +1,21 @@
+{
+  "name": "language-coach",
+  "description": "Real-time language coaching. Corrects your writing and provides natural expressions before every AI response. Supports any language pair.",
+  "version": "0.5.0",
+  "author": {
+    "name": "leeguooooo",
+    "email": "leeguooooo@gmail.com"
+  },
+  "homepage": "https://github.com/leeguooooo/prompt-language-coach",
+  "repository": "https://github.com/leeguooooo/prompt-language-coach",
+  "license": "MIT",
+  "keywords": [
+    "language-learning",
+    "ielts",
+    "writing",
+    "coaching",
+    "esl"
+  ],
+  "hooks": "hooks/cursor-hooks.json",
+  "skills": "skills"
+}
