@@ -1,0 +1,13 @@
+{
+  "nativeLanguage": "Chinese",
+  "targetLanguage": "English",
+  "goal": "ielts",
+  "mode": "ielts-writing",
+  "style": "teaching",
+  "responseLanguage": "target",
+  "enabled": true,
+  "ieltsFocus": "writing",
+  "targetBand": "7.0",
+  "currentLevel": "6.0",
+  "version": 1
+}
