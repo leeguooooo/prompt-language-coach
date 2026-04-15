@@ -370,3 +370,99 @@ Built by [leeguooooo](https://github.com/leeguooooo) — a senior frontend engin
 - [Claude Code documentation](https://docs.anthropic.com/en/docs/claude-code)
 - [Claude Code hooks guide](https://docs.anthropic.com/en/docs/claude-code/hooks)
 - [Claude Code plugin marketplace](https://docs.anthropic.com/en/docs/claude-code/plugins)
+
+```shell
+
+/language-coach:language-coach setup
+
+⏺ 你的母语是什么？（例如：Chinese、Japanese、Spanish）
+
+❯ chinese
+
+⏺ 你正在学习哪种语言？（例如：English、French、Japanese）
+
+❯ english, japanese
+
+⏺ 你的主要学习目标是什么？（everyday / ielts）
+
+❯ ielts
+
+⏺ 你想要哪种 IELTS 模式？（ielts-writing / ielts-speaking）
+
+❯ ielts-writing and ielts-speaking
+
+⏺ 目标雅思分数是多少？（可选，例如：6.5、7.0，直接回车跳过）
+
+❯ 6.5
+
+⏺ 你目前的英语水平大概是？（可选，例如：B1、band 5.5，直接回车跳过）
+
+❯ 高中生水平
+
+⏺ 你想要哪种 coaching 风格？（teaching 详细讲解 / concise 只给纠正 / translate 只给翻译）
+
+❯ teaching
+
+⏺ Coaching 之后，我用哪种语言回答你的实际问题？（native 母语中文 / target 目标语言英文）
+
+❯ native
+
+⏺ 收到！开始配置：
+
+⏺ Bash(\
+      python3 scripts/manage_language_coach.py --platform claude native "Chinese" && \…)
+  ⎿  Native language updated to: Chinese
+     Config file: /Users/leo/.claude/language-coach.json
+     Target language updated to: English
+     … +17 lines (ctrl+o to expand)
+
+⏺ Bash(python3 scripts/manage_language_coach.py --platform claude status)
+  ⎿  Platform:          claude
+     Native language:   Chinese
+     Target language:   English
+     … +10 lines (ctrl+o to expand)
+
+⏺ 配置完成！
+
+  ┌──────────┬────────────────────────────────┐
+  │   项目   │              设置              │
+  ├──────────┼────────────────────────────────┤
+  │ 母语     │ Chinese                        │
+  ├──────────┼────────────────────────────────┤
+  │ 目标语言 │ English + Japanese（自动识别） │
+  ├──────────┼────────────────────────────────┤
+  │ 目标     │ IELTS                          │
+  ├──────────┼────────────────────────────────┤
+  │ 模式     │ IELTS Writing（兼顾 Speaking） │
+  ├──────────┼────────────────────────────────┤
+  │ 风格     │ Teaching（详细讲解）           │
+  ├──────────┼────────────────────────────────┤
+  │ 回答语言 │ 中文                           │
+  ├──────────┼────────────────────────────────┤
+  │ 目标分数 │ 6.5                            │
+  ├──────────┼────────────────────────────────┤
+  │ 当前水平 │ 高中生水平                     │
+  └──────────┴────────────────────────────────┘
+
+  现在写英文时会出现 ╭─ 📚 English · IELTS Writing ─ 的 coaching box，写日文时自动切换为 ╭─ 📚 Japanese · IELTS Writing ─。运行 /reload-plugins 让新配置生效。
+
+/reload-plugins
+  ⎿  Reloaded: 5 plugins · 10 skills · 7 agents · 5 hooks · 0 plugin MCP servers · 1 plugin LSP server
+
+❯ ok, It's work well.
+
+⏺ ╭─ 📚 English · IELTS Writing ──────────
+  │ Band 估分： 这句较短，单独难评分，但有语法错误
+  │ 亮点： 用了副词 "well" 修饰动词 ✓
+  │ 扣分项： "It's work well" — it's = it is，后面不能接动词原形
+  │ 高分改写： "It's working well." / "It works well."
+  │ 可复用句式： It + works/is working + adverb — 描述功能正常运转
+  │ 练习： "The system ___ well after the update." 填 works 还是 is working？
+  ╰─────────────────────────────────────────
+
+  ---
+  一切正常！插件 0.4.1，IELTS 模式已生效，hook 也在正确注入双语配置。
+
+  今天整个 language-coach 从 v0.2.0 进化到了 v0.4.1，功能完整，可以正式使用了。
+
+```
