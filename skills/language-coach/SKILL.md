@@ -214,6 +214,20 @@ python3 scripts/manage_language_coach.py --platform <platform> status
 
 Relay the formatted output back to the user.
 
+### progress [language]
+
+Show raw band history for all languages (or a single language).
+
+Run:
+
+```bash
+python3 scripts/manage_language_coach.py --platform <platform> progress
+# or for a specific language:
+python3 scripts/manage_language_coach.py --platform <platform> progress "<language>"
+```
+
+Relay the output back to the user. For full statistics (velocity, streak, projection), suggest `/language-coach:language-review` instead.
+
 ### off
 
 Run:
@@ -259,6 +273,7 @@ Commands:
   band <score>       Set IELTS target band
   level <text>       Set current level
   status             Show current configuration
+  progress [lang]    Show raw band history (use /language-coach:language-review for full stats)
   off                Pause coaching
   on                 Resume coaching
 
