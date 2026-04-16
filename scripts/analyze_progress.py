@@ -49,8 +49,8 @@ def analyze_language(language: str, entry: dict[str, Any]) -> dict[str, Any]:
     if not estimates:
         return {"language": language, "sessions": 0, "status": "no data"}
 
-    # Parse all valid entries
-    dated: list[tuple[date, float]] = []
+    # Parse all valid entries; carry optional text field
+    dated: list[tuple[date, float, str]] = []
     for e in estimates:
         d = _parse_date(e.get("date", ""))
         try:
@@ -58,29 +58,29 @@ def analyze_language(language: str, entry: dict[str, Any]) -> dict[str, Any]:
         except (ValueError, TypeError):
             b = None
         if d is not None and b is not None:
-            dated.append((d, b))
+            dated.append((d, b, e.get("text", "")))
 
     if not dated:
         return {"language": language, "sessions": 0, "status": "no data"}
 
     dated.sort(key=lambda x: x[0])
     sessions = len(dated)
-    first_date, first_band = dated[0]
-    last_date, last_band = dated[-1]
+    first_date, first_band, _ = dated[0]
+    last_date, last_band, _ = dated[-1]
     today = date.today()
     days_active = (last_date - first_date).days + 1
     days_since_last = (today - last_date).days
 
     # Unique practice days
-    practice_days = len({d for d, _ in dated})
+    practice_days = len({d for d, _, _t in dated})
     consistency_pct = round(practice_days / max(days_active, 1) * 100)
 
     # Best / worst session
-    best_band = max(b for _, b in dated)
+    best_band = max(b for _, b, _t in dated)
     first_band_value = dated[0][1]
 
     # Trend: slope in band/day, convert to band/week
-    indexed = [(i, b) for i, (_, b) in enumerate(dated)]
+    indexed = [(i, b) for i, (_, b, _t) in enumerate(dated)]
     slope_per_session = _linear_trend(indexed)
     # Average time between sessions
     if sessions > 1 and days_active > 0:
@@ -100,7 +100,7 @@ def analyze_language(language: str, entry: dict[str, Any]) -> dict[str, Any]:
         projected_weeks = int((target_band - last_band) / band_per_week)
 
     # Streak: consecutive days ending on last practice day
-    date_set = {d for d, _ in dated}
+    date_set = {d for d, _, _t in dated}
     streak = 0
     cursor = last_date
     while cursor in date_set:
@@ -109,8 +109,8 @@ def analyze_language(language: str, entry: dict[str, Any]) -> dict[str, Any]:
 
     # Recent momentum: last 3 vs first 3 sessions
     if sessions >= 6:
-        early_avg = sum(b for _, b in dated[:3]) / 3
-        recent_avg = sum(b for _, b in dated[-3:]) / 3
+        early_avg = sum(b for _, b, _t in dated[:3]) / 3
+        recent_avg = sum(b for _, b, _t in dated[-3:]) / 3
         momentum = round(recent_avg - early_avg, 2)
     else:
         momentum = None
@@ -131,7 +131,7 @@ def analyze_language(language: str, entry: dict[str, Any]) -> dict[str, Any]:
         "momentum": momentum,
         "projected_weeks_to_target": projected_weeks,
         "target_band": target_band,
-        "history": [{"date": str(d), "band": b} for d, b in dated],
+        "history": [{"date": str(d), "band": b, "text": t} for d, b, t in dated],
     }
 
 
@@ -180,7 +180,11 @@ def _format_report(analyses: list[dict[str, Any]]) -> str:
         if a["sessions"] >= 2:
             lines.append("  History (all sessions):")
             for entry in a["history"]:
-                lines.append(f"    {entry['date']}  {entry['band']}")
+                text = entry.get("text", "")
+                if text:
+                    lines.append(f"    {entry['date']}  band {entry['band']}  \"{text}\"")
+                else:
+                    lines.append(f"    {entry['date']}  band {entry['band']}")
 
         lines.append("")
 

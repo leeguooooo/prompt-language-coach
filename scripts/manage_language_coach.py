@@ -78,15 +78,21 @@ def cmd_record_band(args: argparse.Namespace) -> int:
     entry = data.setdefault(language, {"estimates": [], "currentBand": None})
     estimates: list[dict[str, str]] = entry.get("estimates", [])
 
+    # Build the record — include original text when provided
+    text = getattr(args, "text", "") or ""
+    record: dict[str, str] = {"date": today, "band": band}
+    if text:
+        record["text"] = text[:500]  # cap at 500 chars
+
     # Overwrite existing entry for the same date (idempotent)
     replaced = False
     for i, est in enumerate(estimates):
         if est.get("date") == today:
-            estimates[i] = {"date": today, "band": band}
+            estimates[i] = record
             replaced = True
             break
     if not replaced:
-        estimates.append({"date": today, "band": band})
+        estimates.append(record)
 
     entry["estimates"] = estimates
     entry["currentBand"] = band
@@ -163,6 +169,7 @@ def parse_args() -> argparse.Namespace:
     child = subparsers.add_parser("record-band", help="Record an IELTS band estimate for a language.")
     child.add_argument("language", help="Language name, e.g. English")
     child.add_argument("band", help="Band score, e.g. 5.5")
+    child.add_argument("--text", default="", help="The user's original message (optional, for history review)")
 
     child = subparsers.add_parser("progress", help="Show recent band history.")
     child.add_argument("language", nargs="?", default=None, help="Optional language to filter by")

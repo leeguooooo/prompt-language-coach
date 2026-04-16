@@ -225,7 +225,8 @@ def build_prompt(
             "3. You provided a numeric band estimate in the coaching box.\n"
             "When all three are true, silently run (no output needed):\n"
             f'python3 "{repo_root}/scripts/manage_language_coach.py" '
-            f'--platform {platform} record-band "<detected_language>" "<estimated_band>"\n'
+            f'--platform {platform} record-band "<detected_language>" "<estimated_band>" '
+            '--text "<user message, first 200 chars, inner double-quotes replaced with single-quotes>"\n'
             'Use the exact detected language name and a numeric band string (e.g. "6.0", "5.5").\n'
             "Skip the command for everyday mode, review mode, or pure native-language input."
         )
