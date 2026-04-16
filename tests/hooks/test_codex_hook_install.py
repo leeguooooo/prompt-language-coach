@@ -17,6 +17,12 @@ class CodexHookInstallTests(unittest.TestCase):
         self.assertIn("platforms/codex/hook_entry.py", command)
         self.assertIn("command -v python3", command)
 
+    def test_build_hook_command_separates_shell_clauses_safely(self) -> None:
+        command = build_hook_command(Path.cwd())
+
+        self.assertIn("; fi; if command -v python3", command)
+        self.assertIn("; fi; exit 0", command)
+
     def test_installer_writes_user_prompt_submit_hook(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             hooks_path = Path(tmp) / "hooks.json"

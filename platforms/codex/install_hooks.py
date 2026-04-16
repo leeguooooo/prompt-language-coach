@@ -25,7 +25,7 @@ def build_hook_command(repo_root: Path) -> str:
     )
     script_parts.append("exit 0")
 
-    return f"/bin/sh -lc {shlex.quote(' '.join(script_parts))}"
+    return f"/bin/sh -lc {shlex.quote('; '.join(script_parts))}"
 
 
 def build_managed_entry(repo_root: Path) -> dict[str, Any]:
