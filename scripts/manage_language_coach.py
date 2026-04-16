@@ -21,6 +21,13 @@ from shared.config.schema import (
     ALLOWED_STYLES,
 )
 from shared.prompts.build_prompt import build_prompt
+from platforms.codex.install_hooks import (
+    HOOK_EVENT,
+    install as install_codex_hook,
+    is_managed_entry,
+    load_payload as load_codex_hooks_payload,
+    remove as remove_codex_hook,
+)
 
 TARGET_INHERIT_KEYS = (
     "goal",
@@ -51,6 +58,19 @@ def resolve_progress_path(platform: str) -> Path:
     if platform == "cursor":
         return home / ".cursor" / "language-progress.json"
     return home / ".claude" / "language-progress.json"
+
+
+def resolve_codex_hooks_path() -> Path:
+    return Path.home() / ".codex" / "hooks.json"
+
+
+def codex_hook_installed(hooks_path: Path) -> bool:
+    payload = load_codex_hooks_payload(hooks_path)
+    hooks = payload.get("hooks", {})
+    entries = hooks.get(HOOK_EVENT, [])
+    if not isinstance(entries, list):
+        return False
+    return any(is_managed_entry(entry) for entry in entries)
 
 
 def _load_progress(progress_path: Path) -> dict[str, Any]:
@@ -175,6 +195,8 @@ def parse_args() -> argparse.Namespace:
     child.add_argument("language", nargs="?", default=None, help="Optional language to filter by")
 
     subparsers.add_parser("progress-path", help="Print the progress file path for the current platform.")
+    for name in ("install-hook", "remove-hook", "hook-status"):
+        subparsers.add_parser(name)
 
     return parser.parse_args()
 
@@ -338,23 +360,25 @@ def format_status(
     if not configured:
         status = "not configured"
 
-    return "\n".join(
-        [
-            f"Platform:          {platform}",
-            f"Native language:   {config['nativeLanguage']}",
-            f"Target language:   {config['targetLanguage']}",
-            f"Goal:              {config['goal']}",
-            f"Mode:              {config['mode']}",
-            f"Style:             {config['style']}",
-            f"Response in:       {config['responseLanguage']}",
-            f"IELTS focus:       {config['ieltsFocus']}",
-            f"Target band:       {config['targetBand'] or '-'}",
-            f"Current level:     {config['currentLevel'] or '-'}",
-            f"Targets:           {', '.join(list_targets(config)) or '-'}",
-            f"Status:            {status}",
-            f"Config file:       {path}",
-        ]
-    )
+    lines = [
+        f"Platform:          {platform}",
+        f"Native language:   {config['nativeLanguage']}",
+        f"Target language:   {config['targetLanguage']}",
+        f"Goal:              {config['goal']}",
+        f"Mode:              {config['mode']}",
+        f"Style:             {config['style']}",
+        f"Response in:       {config['responseLanguage']}",
+        f"IELTS focus:       {config['ieltsFocus']}",
+        f"Target band:       {config['targetBand'] or '-'}",
+        f"Current level:     {config['currentLevel'] or '-'}",
+        f"Targets:           {', '.join(list_targets(config)) or '-'}",
+        f"Status:            {status}",
+    ]
+    if platform == "codex":
+        hook_status = "installed" if codex_hook_installed(resolve_codex_hooks_path()) else "not installed"
+        lines.append(f"Hook status:       {hook_status}")
+    lines.append(f"Config file:       {path}")
+    return "\n".join(lines)
 
 
 _MARKER_START = "<!-- language-coach:start -->"
@@ -422,6 +446,19 @@ def main() -> int:
         return cmd_progress(args)
     if args.command == "progress-path":
         print(resolve_progress_path(args.platform))
+        return 0
+    if args.command == "install-hook":
+        hooks_path = resolve_codex_hooks_path()
+        install_codex_hook(hooks_path, REPO_ROOT)
+        print(f"Codex hook installed: {hooks_path}")
+        return 0
+    if args.command == "remove-hook":
+        hooks_path = resolve_codex_hooks_path()
+        remove_codex_hook(hooks_path)
+        print(f"Codex hook removed: {hooks_path}")
+        return 0
+    if args.command == "hook-status":
+        print("installed" if codex_hook_installed(resolve_codex_hooks_path()) else "not installed")
         return 0
 
     path = Path(args.config).expanduser() if args.config else resolve_default_config(args.platform)

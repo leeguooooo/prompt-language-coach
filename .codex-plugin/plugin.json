@@ -1,7 +1,7 @@
 {
   "name": "prompt-language-coach",
   "version": "0.8.0",
-  "description": "Real-time language coaching with everyday and IELTS modes.",
+  "description": "Always-on language coaching for any language pair, with everyday and IELTS modes.",
   "author": {
     "name": "leeguooooo"
   },
@@ -10,6 +10,10 @@
   "license": "MIT",
   "keywords": [
     "language-learning",
+    "multilingual",
+    "codex",
+    "claude-code",
+    "cursor",
     "ielts",
     "writing",
     "coaching"
@@ -17,8 +21,8 @@
   "skills": "../skills",
   "interface": {
     "displayName": "Prompt Language Coach",
-    "shortDescription": "Language coaching for everyday work and IELTS practice",
-    "longDescription": "Correct writing, teach more natural phrasing, and switch into IELTS-oriented writing or speaking modes.",
+    "shortDescription": "An always-on language coach for Codex",
+    "longDescription": "Coach every prompt, support any native-to-target language pair, and switch into IELTS writing or speaking practice when needed.",
     "developerName": "leeguooooo",
     "category": "Education",
     "capabilities": [
@@ -26,7 +30,8 @@
       "Write"
     ],
     "defaultPrompt": [
-      "Use Prompt Language Coach to improve my English while I work.",
+      "Use Prompt Language Coach to improve my target language while I work.",
+      "Use Prompt Language Coach for Japanese to English practice.",
       "Use Prompt Language Coach in IELTS writing mode."
     ]
   }

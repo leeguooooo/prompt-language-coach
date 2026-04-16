@@ -5,8 +5,13 @@ description: Language coaching for every prompt. Use when the user runs /languag
 
 You are the `language-coach` command handler. Read the sub-command and run the matching repo-root CLI command.
 
-Default platform: `claude`
-The shared `/language-coach` flow writes Claude config by default. It does **not** write `~/.codex/language-coach.json` or `~/.cursor/language-coach.json` unless the user explicitly asks for that platform.
+Default platform: use the current host platform.
+
+- In Codex, use `--platform codex`
+- In Claude Code, use `--platform claude`
+- In Cursor, use `--platform cursor`
+
+If the host platform is ambiguous, ask which platform the user is currently running before writing config.
 
 All commands below assume the current working directory is the repository root:
 
@@ -61,6 +66,15 @@ Finish by running:
 ```bash
 python3 scripts/manage_language_coach.py --platform <platform> status
 ```
+
+For Codex users, also run:
+
+```bash
+python3 scripts/manage_language_coach.py --platform codex install-hook
+python3 scripts/manage_language_coach.py --platform codex status
+```
+
+This ensures automatic coaching is installed on Codex immediately after setup.
 
 Confirm with a short summary of the stored configuration.
 
@@ -214,6 +228,36 @@ python3 scripts/manage_language_coach.py --platform <platform> status
 
 Relay the formatted output back to the user.
 
+### install-hook
+
+Codex only. Run:
+
+```bash
+python3 scripts/manage_language_coach.py --platform codex install-hook
+```
+
+Confirm: `Codex hook installed: <path>`
+
+### remove-hook
+
+Codex only. Run:
+
+```bash
+python3 scripts/manage_language_coach.py --platform codex remove-hook
+```
+
+Confirm: `Codex hook removed: <path>`
+
+### hook-status
+
+Codex only. Run:
+
+```bash
+python3 scripts/manage_language_coach.py --platform codex hook-status
+```
+
+Relay `installed` or `not installed` back to the user.
+
 ### progress [language]
 
 Show raw band history for all languages (or a single language).
@@ -274,6 +318,9 @@ Commands:
   level <text>       Set current level
   status             Show current configuration
   progress [lang]    Show raw band history (use /language-coach:language-review for full stats)
+  install-hook       Install the Codex UserPromptSubmit hook
+  remove-hook        Remove the Codex UserPromptSubmit hook
+  hook-status        Show whether the Codex hook is installed
   off                Pause coaching
   on                 Resume coaching
 

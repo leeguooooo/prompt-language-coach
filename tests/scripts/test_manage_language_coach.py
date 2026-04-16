@@ -81,6 +81,56 @@ class ManageLanguageCoachTests(unittest.TestCase):
             updated = json.loads(config_path.read_text(encoding="utf-8"))
             self.assertEqual(updated["targetLanguage"], "Japanese")
 
+    def test_codex_install_hook_command_writes_hooks_json(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            home = Path(tmp)
+            hooks_path = home / ".codex" / "hooks.json"
+
+            result = subprocess.run(
+                [
+                    "python3",
+                    "scripts/manage_language_coach.py",
+                    "--platform",
+                    "codex",
+                    "install-hook",
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+                env={"HOME": str(home)},
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertTrue(hooks_path.exists())
+            payload = json.loads(hooks_path.read_text(encoding="utf-8"))
+            command = payload["hooks"]["UserPromptSubmit"][0]["hooks"][0]["command"]
+            self.assertIn("platforms/codex/hook_entry.py", command)
+            self.assertIn("Codex hook installed:", result.stdout)
+
+    def test_codex_status_reports_hook_state(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            home = Path(tmp)
+            config_dir = home / ".codex"
+            config_dir.mkdir(parents=True, exist_ok=True)
+            (config_dir / "language-coach.json").write_text("{}", encoding="utf-8")
+
+            result = subprocess.run(
+                [
+                    "python3",
+                    "scripts/manage_language_coach.py",
+                    "--platform",
+                    "codex",
+                    "status",
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+                env={"HOME": str(home)},
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn("Hook status:       not installed", result.stdout)
+
     def test_set_mode_updates_normalized_config(self):
         with tempfile.TemporaryDirectory() as tmp:
             config_path = Path(tmp) / "language-coach.json"

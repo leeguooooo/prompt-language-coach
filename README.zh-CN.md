@@ -2,9 +2,11 @@
 
 > [English](README.md) | 中文
 
-> 在 AI 编辑器中实时语言辅导 —— 每次发送提示时自动纠正你的写作，并学习地道的表达方式。
+> 面向 AI 编辑器的常驻语言教练 —— 在 Codex、Claude Code 和 Cursor 中，一边工作一边提升任何目标语言。
 
+[![Codex Plugin](https://img.shields.io/badge/Codex-Plugin-green)](https://github.com/leeguooooo/prompt-language-coach)
 [![Claude Code Plugin](https://img.shields.io/badge/Claude%20Code-Plugin-blue)](https://github.com/leeguooooo/prompt-language-coach)
+[![Cursor Plugin](https://img.shields.io/badge/Cursor-Plugin-black)](https://github.com/leeguooooo/prompt-language-coach)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 ---
@@ -12,9 +14,9 @@
 
 ## 它能做什么
 
-本插件在 **Claude Code** 中通过插件市场安装，配合 `UserPromptSubmit` 钩子运行。
+Prompt Language Coach 原生支持 **Codex**、**Claude Code** 和 **Cursor**。
 
-你发送的每一条消息，都会在 Claude 回答之前先接受辅导：
+你发送的每一条消息，都会在真实模型回答之前先接受辅导：
 
 - 用目标语言写作？→ 获得语法纠错 + 地道的母语表达
 - 用母语写作？→ 获得一个简洁自然的目标语言版本
@@ -29,16 +31,28 @@
 
 支持**任意语言对**：中文 → 英语、日语 → 英语、西班牙语 → 法语，等等。
 
+它的核心卖点：
+
+- **常驻辅导** —— 每条 prompt 都自动变成一次语言训练
+- **任意语言对** —— 不局限于英语学习
+- **需要时可切到 IELTS 深度模式** —— 从轻量纠错升级到考试导向训练
+
+| 平台 | 原生接入方式 | 状态 |
+| --- | --- | --- |
+| Codex | `.codex-plugin` + `UserPromptSubmit` hook | 一等公民 |
+| Claude Code | `.claude-plugin` + `UserPromptSubmit` hook | 一等公民 |
+| Cursor | `.cursor-plugin` / 规则式会话注入 | 一等公民 |
+
 ---
 
 ## 演示
 
-你发送的每条消息都会在 Claude 回答**之前**接受辅导。辅导内容显示在一个独立的视觉框中，与实际回答清晰分隔。
+你发送的每条消息都会在助手回答**之前**接受辅导。辅导内容显示在一个独立的视觉框中，与实际回答清晰分隔。
 
 **日常模式（everyday）** —— 你写道：
 > "I want to know how can i to fix this bug in my code"
 
-**Claude 先辅导，再回答：**
+**助手先辅导，再回答：**
 ```
 ╭─ 📚 English Coaching ─────────────────────
 │ 原文：   "I want to know how can i to fix this bug"
@@ -53,7 +67,7 @@
 **IELTS 写作模式（ielts-writing）** —— 你写道：
 > "The environment is very important and we should protect it because many reason."
 
-**Claude 辅导：**
+**助手辅导：**
 ```
 ╭─ 📚 English · IELTS Writing ──────────────
 │ Band 估分：  5.0–5.5
@@ -71,6 +85,14 @@
 ---
 
 ## 安装
+
+### Codex
+
+**前置条件：** `python3`
+
+1. 通过本仓库把插件安装到 Codex 的插件目录或插件入口中。
+2. 运行 `/language-coach setup`
+3. 设置流程会写入 `~/.codex/language-coach.json`，并自动安装 Codex 的 `UserPromptSubmit` hook。
 
 ### Claude Code
 
@@ -105,6 +127,12 @@
 
 ## 设置与使用
 
+### Codex 设置
+
+运行 `/language-coach setup` 并完成引导问题。
+
+在 Codex 中，setup 结束后还会自动安装 `UserPromptSubmit` hook，因此从下一条提示开始就会进入常驻辅导。Codex 配置文件存储于 `~/.codex/language-coach.json`。
+
 ### Claude Code 设置
 
 运行 `/language-coach:language-coach setup`，按照引导回答以下问题：
@@ -128,23 +156,27 @@
 
 ## 命令列表
 
+在 **Codex** 和 **Cursor** 中，使用 `/language-coach ...`。
+
+在 **Claude Code** 中，使用 `/language-coach:language-coach ...`。
+
 | 命令 | 说明 |
 |---|---|
-| `/language-coach:language-coach setup` | 一次性交互式设置向导 |
-| `/language-coach:language-coach native <lang>` | 修改你的母语 |
-| `/language-coach:language-coach target <lang>` | 修改你正在学习的语言 |
-| `/language-coach:language-coach style <mode>` | 切换辅导风格：`teaching`、`concise`、`translate` |
-| `/language-coach:language-coach response <mode>` | 切换回复语言：`native` 或 `target` |
-| `/language-coach:language-coach goal <mode>` | 切换学习目标：`everyday` 或 `ielts` |
-| `/language-coach:language-coach mode <mode>` | 切换辅导模式：`everyday`、`ielts-writing`、`ielts-speaking` 或 `review` |
-| `/language-coach:language-coach focus <mode>` | 设置 IELTS 重点：`writing`、`speaking` 或 `both` |
-| `/language-coach:language-coach band <score>` | 存储你的 IELTS 目标分数段 |
-| `/language-coach:language-coach level <text>` | 存储你的当前水平 |
-| `/language-coach:language-coach status` | 显示当前配置 |
-| `/language-coach:language-coach off` | 暂停辅导（配置保留） |
-| `/language-coach:language-coach on` | 恢复辅导 |
-| `/language-coach:language-coach progress` | 显示所有语言的雅思分数历史 |
-| `/language-coach:language-coach progress <lang>` | 显示指定语言的分数历史 |
+| `/language-coach setup` | 一次性交互式设置向导 |
+| `/language-coach native <lang>` | 修改你的母语 |
+| `/language-coach target <lang>` | 修改你正在学习的语言 |
+| `/language-coach style <mode>` | 切换辅导风格：`teaching`、`concise`、`translate` |
+| `/language-coach response <mode>` | 切换回复语言：`native` 或 `target` |
+| `/language-coach goal <mode>` | 切换学习目标：`everyday` 或 `ielts` |
+| `/language-coach mode <mode>` | 切换辅导模式：`everyday`、`ielts-writing`、`ielts-speaking` 或 `review` |
+| `/language-coach focus <mode>` | 设置 IELTS 重点：`writing`、`speaking` 或 `both` |
+| `/language-coach band <score>` | 存储你的 IELTS 目标分数段 |
+| `/language-coach level <text>` | 存储你的当前水平 |
+| `/language-coach status` | 显示当前配置 |
+| `/language-coach off` | 暂停辅导（配置保留） |
+| `/language-coach on` | 恢复辅导 |
+| `/language-coach progress` | 显示所有语言的雅思分数历史 |
+| `/language-coach progress <lang>` | 显示指定语言的分数历史 |
 
 ---
 
@@ -159,7 +191,7 @@
 
 ## 进度追踪
 
-以下情况同时满足时，雅思估分会自动记录到 `~/.claude/language-progress.json`：
+以下情况同时满足时，雅思估分会自动记录到当前平台对应的 progress 文件（`~/.codex/language-progress.json`、`~/.claude/language-progress.json` 或 `~/.cursor/language-progress.json`）：
 
 1. 当前模式为 `ielts-writing` 或 `ielts-speaking`
 2. 用户使用目标语言书写（非纯母语输入）
@@ -191,7 +223,13 @@ Current estimate: 6.0
 
 ## 配置说明
 
-配置存储于 `~/.claude/language-coach.json`，标准化 JSON 结构如下：
+配置存储于当前平台对应的配置文件中：
+
+- Codex：`~/.codex/language-coach.json`
+- Claude Code：`~/.claude/language-coach.json`
+- Cursor：`~/.cursor/language-coach.json`
+
+标准化 JSON 结构如下：
 
 ```json
 {
@@ -229,21 +267,23 @@ Current estimate: 6.0
 
 ## 工作原理
 
-Claude Code 和 Cursor 均通过共享 Python 核心渲染辅导上下文：
+Codex、Claude Code 和 Cursor 都通过共享 Python 核心渲染辅导上下文：
 
 1. `shared/config/` 加载并规范化平台配置
 2. `shared/pedagogy/modes.py` 根据当前模式选择反馈格式
 3. `shared/prompts/build_prompt.py` 构建辅导指令文本
 4. `scripts/render_coaching_context.py` 生成钩子 JSON 载荷
 
+**Codex** 使用 `.codex-plugin/plugin.json` 配合 `platforms/codex/hook_entry.py` —— 通过 Codex 的 `UserPromptSubmit` hook 在每条提示前注入辅导。
+
 **Claude Code** 使用 `UserPromptSubmit` 钩子（`hooks/language-coach.sh`）——每条提示均触发辅导，通过 `hookSpecificOutput.additionalContext` 注入。
 
 **Cursor** 使用 `sessionStart` 钩子（`hooks/cursor-language-coach.sh`）——会话开始时通过 `additional_context` 注入辅导上下文。
 
-两个钩子在以下情况下均静默退出（不辅导、不报错）：
+所有接入层在以下情况下均静默退出（不辅导、不报错）：
 
 - 未安装 `python3`
-- 平台配置文件尚不存在（`~/.claude/language-coach.json` 或 `~/.cursor/language-coach.json`）
+- 平台配置文件尚不存在（`~/.codex/language-coach.json`、`~/.claude/language-coach.json` 或 `~/.cursor/language-coach.json`）
 - `enabled` 为 `false`
 
 ---
@@ -264,6 +304,18 @@ Claude Code 和 Cursor 均通过共享 Python 核心渲染辅导上下文：
 ---
 
 ## 手动安装
+
+### Codex
+
+克隆仓库，并将其放入 Codex 可读取 `.codex-plugin/plugin.json` 的本地插件目录。
+
+然后运行：
+
+```bash
+/language-coach setup
+```
+
+设置流程会写入 `~/.codex/language-coach.json`，并在 `~/.codex/hooks.json` 中安装 Codex 的 `UserPromptSubmit` hook。
 
 ### Claude Code
 
@@ -313,6 +365,8 @@ Claude Code 和 Cursor 均通过共享 Python 核心渲染辅导上下文：
 ---
 
 ## 完整使用示例
+
+下面的示例使用 Claude Code 的命令界面，但辅导模型和配置概念在 Codex 与 Cursor 上是一致的。
 
 一个完整示例：中国高中生同时学习英语和日语，备考 IELTS（目标分数段 6.5）。
 
