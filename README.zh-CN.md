@@ -96,11 +96,13 @@ Prompt Language Coach 原生支持 **Codex**、**Claude Code** 和 **Cursor**。
 codex marketplace add leeguooooo/prompt-language-coach
 ```
 
+注意：`codex marketplace add ...` 只是在 Codex 里添加 marketplace 源，本身不会把插件装进当前可用插件集合。
+
 然后：
 
 1. 重启 Codex
 2. 打开插件目录并安装 **Prompt Language Coach**
-3. 运行 `/language-coach setup`
+3. 运行 `/language-coach setup` 或 `/lang setup`
 
 设置流程会写入 `~/.codex/language-coach.json`，并自动安装 Codex 的 `UserPromptSubmit` hook。
 
@@ -173,6 +175,7 @@ codex marketplace add leeguooooo/prompt-language-coach
 | 命令 | 说明 |
 |---|---|
 | `/language-coach setup` | 一次性交互式设置向导 |
+| `/lang ...` | `/language-coach ...` 的短别名 |
 | `/language-coach native <lang>` | 修改你的母语 |
 | `/language-coach target <lang>` | 修改你正在学习的语言 |
 | `/language-coach style <mode>` | 切换辅导风格：`teaching`、`concise`、`translate` |

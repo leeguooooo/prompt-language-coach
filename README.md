@@ -96,11 +96,13 @@ Add the repository as a Codex marketplace source:
 codex marketplace add leeguooooo/prompt-language-coach
 ```
 
+Important: `codex marketplace add ...` only adds the marketplace source. It does not install the plugin into the active Codex plugin set by itself.
+
 Then:
 
 1. Restart Codex
 2. Open the plugin directory and install **Prompt Language Coach**
-3. Run `/language-coach setup`
+3. Run `/language-coach setup` or `/lang setup`
 
 The setup flow writes `~/.codex/language-coach.json` and installs the Codex `UserPromptSubmit` hook automatically.
 
@@ -173,6 +175,7 @@ On **Claude Code**, use `/language-coach:language-coach ...`.
 | Command | Description |
 |---|---|
 | `/language-coach setup` | One-time interactive setup wizard |
+| `/lang ...` | Shortcut alias for `/language-coach ...` |
 | `/language-coach native <lang>` | Change your native language |
 | `/language-coach target <lang>` | Change the language you are learning |
 | `/language-coach style <mode>` | Switch coaching style: `teaching`, `concise`, `translate` |
