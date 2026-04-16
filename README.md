@@ -107,8 +107,6 @@ python3 ~/.codex/.tmp/marketplaces/prompt-language-coach/plugins/prompt-language
 Then restart Codex and run:
 
 ```text
-$lang setup
-# or
 $language-coach setup
 ```
 
@@ -149,7 +147,7 @@ The setup wizard asks your native language, target language, goal, style, and re
 
 ### Codex setup
 
-Run `$lang setup` (or `$language-coach setup`) and answer the onboarding questions.
+Run `$language-coach setup` and answer the onboarding questions.
 
 On Codex, the setup flow also installs the automatic `UserPromptSubmit` hook so coaching starts on every prompt right away. Config is stored in the shared file `~/.prompt-language-coach/language-coach.json` and mirrored to `~/.codex/language-coach.json`.
 
@@ -176,7 +174,7 @@ After setup, Claude coaching activates automatically on every prompt.
 
 ## Commands
 
-On **Codex**, use `$language-coach ...` or `$lang ...`.
+On **Codex**, use `$language-coach ...`.
 
 On **Cursor**, use `/language-coach ...`.
 
@@ -185,7 +183,6 @@ On **Claude Code**, use `/language-coach:language-coach ...`.
 | Command | Description |
 |---|---|
 | `$language-coach setup` | One-time interactive setup wizard in Codex |
-| `$lang ...` | Shortcut alias for `$language-coach ...` in Codex |
 | `/language-coach ...` | Command surface for Cursor |
 | `/language-coach native <lang>` | Change your native language |
 | `/language-coach target <lang>` | Change the language you are learning |
@@ -352,7 +349,7 @@ After restarting Codex, install the plugin into the active plugin directory with
 python3 ~/.codex/.tmp/marketplaces/prompt-language-coach/plugins/prompt-language-coach/scripts/install_codex_plugin.py
 ```
 
-Then run `$lang setup`. The setup flow writes `~/.codex/language-coach.json` and installs the Codex `UserPromptSubmit` hook in `~/.codex/hooks.json`.
+Then run `$language-coach setup`. The setup flow writes `~/.codex/language-coach.json` and installs the Codex `UserPromptSubmit` hook in `~/.codex/hooks.json`.
 
 ### Claude Code
 

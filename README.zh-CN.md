@@ -107,8 +107,6 @@ python3 ~/.codex/.tmp/marketplaces/prompt-language-coach/plugins/prompt-language
 接着重启 Codex，再运行：
 
 ```text
-$lang setup
-# 或
 $language-coach setup
 ```
 
@@ -149,7 +147,7 @@ $language-coach setup
 
 ### Codex 设置
 
-运行 `$lang setup`（或 `$language-coach setup`）并完成引导问题。
+运行 `$language-coach setup` 并完成引导问题。
 
 在 Codex 中，setup 结束后还会自动安装 `UserPromptSubmit` hook，因此从下一条提示开始就会进入常驻辅导。配置会写入共享文件 `~/.prompt-language-coach/language-coach.json`，并镜像到 `~/.codex/language-coach.json`。
 
@@ -176,7 +174,7 @@ $language-coach setup
 
 ## 命令列表
 
-在 **Codex** 中，使用 `$language-coach ...` 或 `$lang ...`。
+在 **Codex** 中，使用 `$language-coach ...`。
 
 在 **Cursor** 中，使用 `/language-coach ...`。
 
@@ -185,7 +183,6 @@ $language-coach setup
 | 命令 | 说明 |
 |---|---|
 | `$language-coach setup` | Codex 里的一次性交互式设置向导 |
-| `$lang ...` | Codex 里 `$language-coach ...` 的短别名 |
 | `/language-coach ...` | Cursor 里的命令形式 |
 | `/language-coach native <lang>` | 修改你的母语 |
 | `/language-coach target <lang>` | 修改你正在学习的语言 |
@@ -352,7 +349,7 @@ codex marketplace add .
 python3 ~/.codex/.tmp/marketplaces/prompt-language-coach/plugins/prompt-language-coach/scripts/install_codex_plugin.py
 ```
 
-然后运行 `$lang setup`。设置流程会写入 `~/.codex/language-coach.json`，并在 `~/.codex/hooks.json` 中安装 Codex 的 `UserPromptSubmit` hook。
+然后运行 `$language-coach setup`。设置流程会写入 `~/.codex/language-coach.json`，并在 `~/.codex/hooks.json` 中安装 Codex 的 `UserPromptSubmit` hook。
 
 ### Claude Code
 

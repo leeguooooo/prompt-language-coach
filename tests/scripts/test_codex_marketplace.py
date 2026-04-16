@@ -30,7 +30,6 @@ class CodexMarketplaceTests(unittest.TestCase):
 
     def test_bundle_contains_self_contained_codex_plugin_assets(self):
         self.assertTrue((BUNDLE_ROOT / "skills" / "language-coach" / "SKILL.md").exists())
-        self.assertTrue((BUNDLE_ROOT / "skills" / "lang" / "SKILL.md").exists())
         self.assertTrue((BUNDLE_ROOT / "scripts" / "install_codex_plugin.py").exists())
         self.assertTrue((BUNDLE_ROOT / "scripts" / "manage_language_coach.py").exists())
         self.assertTrue((BUNDLE_ROOT / "shared" / "config" / "schema.py").exists())
