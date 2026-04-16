@@ -1,0 +1,37 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "New version (e.g. 0.8.0)"
+        required: true
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Bump version in all plugin manifests
+        run: python3 scripts/bump_version.py "${{ github.event.inputs.version }}"
+
+      - name: Commit & tag
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add .claude-plugin/plugin.json .cursor-plugin/plugin.json .codex-plugin/plugin.json
+          git commit -m "chore: release v${{ github.event.inputs.version }}" || echo "Nothing to commit"
+          git tag "v${{ github.event.inputs.version }}"
+          git push origin HEAD --tags
+
+      - name: Notify plugins repo to sync marketplace
+        uses: peter-evans/repository-dispatch@v3
+        with:
+          token: ${{ secrets.PLUGINS_REPO_TOKEN }}
+          repository: leeguooooo/plugins
+          event-type: sync-language-coach-version
+          client-payload: '{"version": "${{ github.event.inputs.version }}"}'
