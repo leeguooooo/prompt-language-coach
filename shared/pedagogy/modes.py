@@ -12,6 +12,12 @@ MIXED_LANGUAGE_GUIDANCE = (
     "target language."
 )
 
+MIXED_LANGUAGE_SCORING_GUIDANCE = (
+    "If the user falls back to native-language words or phrases to complete "
+    "key meaning, treat that as evidence that the target language alone was "
+    "not enough for the task."
+)
+
 EVERYDAY_SECTIONS = (
     "Your original",
     "Corrected",
@@ -63,6 +69,7 @@ def guidance_for_mode(mode: str) -> tuple[str, ...]:
             "Optimize feedback for score-oriented writing improvement rather than grammar-only correction.",
             "Prefer rough band ranges over false precision.",
             MIXED_LANGUAGE_GUIDANCE,
+            MIXED_LANGUAGE_SCORING_GUIDANCE,
         )
     if normalized == "scored-speaking":
         return (

@@ -125,6 +125,22 @@ class PromptBuilderTests(unittest.TestCase):
         self.assertIn("Do not start above 5.5 on a first scored sample", prompt)
         self.assertIn("track-estimate", prompt)
 
+    def test_ielts_writing_prompt_penalizes_native_language_fallback(self) -> None:
+        config = json.loads(
+            (FIXTURES / "config_ielts_writing.json").read_text(encoding="utf-8")
+        )
+
+        prompt = build_prompt(config)
+
+        self.assertIn(
+            "If the user falls back to native-language words or phrases to complete key meaning, treat that as evidence that the target language alone was not enough for the task.",
+            prompt,
+        )
+        self.assertIn(
+            "If the sample is short, fragmented, or depends on native-language fallback to complete core meaning, keep the estimate at 4.5 or below unless there is strong contrary evidence elsewhere in the message.",
+            prompt,
+        )
+
     def test_ielts_speaking_prompt_avoids_fake_pronunciation_scoring(self) -> None:
         config = json.loads(
             (FIXTURES / "config_ielts_writing.json").read_text(encoding="utf-8")

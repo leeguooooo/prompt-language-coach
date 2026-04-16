@@ -23,6 +23,7 @@ IELTS = ProficiencyScale(
         "Estimate using IELTS bands in 0.5 increments.",
         "Prefer a rough range when the evidence is thin.",
         "Do not start above 5.5 on a first scored sample unless the writing clearly shows sustained band-6+ control.",
+        "If the sample is short, fragmented, or depends on native-language fallback to complete core meaning, keep the estimate at 4.5 or below unless there is strong contrary evidence elsewhere in the message.",
     ),
 )
 
