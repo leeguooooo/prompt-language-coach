@@ -27,15 +27,15 @@ Ask these questions one at a time:
 
 1. `What is your native language? (for example: Chinese, Japanese, Spanish)`
 2. `What language are you learning? (for example: English, French, German)`
-3. `What is your main goal? (everyday / ielts)`
+3. `What is your main goal? (everyday / scored)`
 4. `Which coaching style do you want? (teaching / concise / translate)`
 5. `Which response language should I use after coaching? (native / target)`
 
-If the user chooses `ielts`, ask these follow-ups one at a time:
+If the user chooses `scored`, ask these follow-ups one at a time:
 
-1. `Which IELTS mode do you want? (ielts-writing / ielts-speaking)`
-2. `What IELTS focus should I store? (writing / speaking / both)`
-3. `What target band are you aiming for? (optional)`
+1. `Which scored mode do you want? (scored-writing / scored-speaking)`
+2. `What scoring focus should I store? (writing / speaking / both)`
+3. `What target estimate are you aiming for? (optional)`
 4. `What is your current level? (optional)`
 
 Then run the matching commands in order:
@@ -52,12 +52,12 @@ For Codex users, set `<platform>` to `codex` on every command in the setup flow.
 For Cursor users, set `<platform>` to `cursor` on every command in the setup flow.
 Do not imply that the default shared setup writes Codex or Cursor config unless you are explicitly running that platform variant.
 
-If `goal` is `ielts`, also run:
+If `goal` is `scored`, also run:
 
 ```bash
-python3 scripts/manage_language_coach.py --platform <platform> mode "<ielts-mode>"
+python3 scripts/manage_language_coach.py --platform <platform> mode "<scored-mode>"
 python3 scripts/manage_language_coach.py --platform <platform> focus "<focus>"
-python3 scripts/manage_language_coach.py --platform <platform> band "<target-band>"
+python3 scripts/manage_language_coach.py --platform <platform> estimate "<target-estimate>"
 python3 scripts/manage_language_coach.py --platform <platform> level "<current-level>"
 ```
 
@@ -162,7 +162,7 @@ Confirm: `Responses will use: <mode>`
 
 ### goal <mode>
 
-Valid values: `everyday`, `ielts`
+Valid values: `everyday`, `scored`
 
 Run:
 
@@ -172,11 +172,11 @@ python3 scripts/manage_language_coach.py --platform <platform> goal "<mode>"
 
 Notes:
 - `goal everyday` resets the active mode to `everyday`
-- `goal ielts` keeps the shared config in IELTS mode
+- `goal scored` keeps the shared config in scored mode
 
 ### mode <mode>
 
-Valid values: `everyday`, `ielts-writing`, `ielts-speaking`, `review`
+Valid values: `everyday`, `scored-writing`, `scored-speaking`, `review`
 
 Run:
 
@@ -185,27 +185,29 @@ python3 scripts/manage_language_coach.py --platform <platform> mode "<mode>"
 ```
 
 Notes:
-- IELTS modes automatically set `goal` to `ielts`
+- scored modes automatically set `goal` to `scored`
 - `mode everyday` switches `goal` back to `everyday`
 
-### focus <mode>
+### practice-focus <mode>
 
 Valid values: `writing`, `speaking`, `both`
 
 Run:
 
 ```bash
-python3 scripts/manage_language_coach.py --platform <platform> focus "<mode>"
+python3 scripts/manage_language_coach.py --platform <platform> practice-focus "<mode>"
 ```
 
-### band <score>
+`focus` remains available as a legacy alias.
 
-Examples: `6.5`, `7.0`, `7.5`
+### estimate <value>
+
+Examples: `6.5`, `N3`, `B1`
 
 Run:
 
 ```bash
-python3 scripts/manage_language_coach.py --platform <platform> band "<score>"
+python3 scripts/manage_language_coach.py --platform <platform> estimate "<value>"
 ```
 
 ### level <text>
@@ -260,7 +262,7 @@ Relay `installed` or `not installed` back to the user.
 
 ### progress [language]
 
-Show raw band history for all languages (or a single language).
+Show raw estimate history for all languages (or a single language).
 
 Run:
 
@@ -311,13 +313,16 @@ Commands:
   target-list        List the configured multi-target languages
   style <mode>       Set coaching style: teaching / concise / translate
   response <mode>    Set response language: native / target
-  goal <mode>        Set the coaching goal: everyday / ielts
-  mode <mode>        Set the coaching mode: everyday / ielts-writing / ielts-speaking / review
-  focus <mode>       Set IELTS focus: writing / speaking / both
-  band <score>       Set IELTS target band
+  goal <mode>        Set the coaching goal: everyday / scored
+  mode <mode>        Set the coaching mode: everyday / scored-writing / scored-speaking / review
+  practice-focus <mode>
+                     Set scoring focus: writing / speaking / both
+  focus <mode>       Legacy alias for practice-focus
+  estimate <value>   Set target estimate
+  band <score>       Legacy alias for estimate
   level <text>       Set current level
   status             Show current configuration
-  progress [lang]    Show raw band history (use /language-coach:language-review for full stats)
+  progress [lang]    Show raw estimate history (use /language-coach:language-review for full stats)
   install-hook       Install the Codex UserPromptSubmit hook
   remove-hook        Remove the Codex UserPromptSubmit hook
   hook-status        Show whether the Codex hook is installed

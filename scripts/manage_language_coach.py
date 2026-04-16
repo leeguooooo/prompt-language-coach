@@ -19,6 +19,8 @@ from shared.config.schema import (
     ALLOWED_MODES,
     ALLOWED_RESPONSE_LANGUAGES,
     ALLOWED_STYLES,
+    canonicalize_goal,
+    canonicalize_mode,
 )
 from shared.proficiency import normalize_estimate, scale_for_language
 from shared.prompts.build_prompt import build_prompt
@@ -122,7 +124,7 @@ def load_progress_data(platform: str) -> dict[str, Any]:
                 language,
                 {
                     "estimates": [],
-                    "currentBand": None,
+                    "currentEstimate": None,
                     "scale": scale_for_language(language).key,
                 },
             )
@@ -136,9 +138,11 @@ def load_progress_data(platform: str) -> dict[str, Any]:
                 incoming_entry.get("estimates", []),
             )
             if entry["estimates"]:
-                entry["currentBand"] = entry["estimates"][-1].get("band")
+                entry["currentEstimate"] = entry["estimates"][-1].get("band")
+            elif incoming_entry.get("currentEstimate") is not None:
+                entry["currentEstimate"] = incoming_entry.get("currentEstimate")
             elif incoming_entry.get("currentBand") is not None:
-                entry["currentBand"] = incoming_entry.get("currentBand")
+                entry["currentEstimate"] = incoming_entry.get("currentBand")
 
     return merged
 
@@ -156,7 +160,7 @@ def ensure_progress_snapshot(platform: str) -> dict[str, Any]:
     return data
 
 
-def cmd_record_band(args: argparse.Namespace) -> int:
+def cmd_record_estimate(args: argparse.Namespace) -> int:
     data = load_progress_data(args.platform)
 
     language = args.language
@@ -166,7 +170,7 @@ def cmd_record_band(args: argparse.Namespace) -> int:
 
     entry = data.setdefault(
         language,
-        {"estimates": [], "currentBand": None, "scale": scale.key},
+        {"estimates": [], "currentEstimate": None, "scale": scale.key},
     )
     estimates: list[dict[str, str]] = entry.get("estimates", [])
 
@@ -187,10 +191,10 @@ def cmd_record_band(args: argparse.Namespace) -> int:
         estimates.append(record)
 
     entry["estimates"] = estimates
-    entry["currentBand"] = band
+    entry["currentEstimate"] = band
     entry["scale"] = scale.key
     save_progress_data(args.platform, data)
-    print(f"Recorded: {language} band {band} on {today}")
+    print(f"Recorded: {language} estimate {band} on {today}")
     return 0
 
 
@@ -208,7 +212,7 @@ def cmd_progress(args: argparse.Namespace) -> int:
     for lang in languages:
         entry = data.get(lang, {})
         estimates: list[dict[str, str]] = entry.get("estimates", [])
-        current_band = entry.get("currentBand")
+        current_band = entry.get("currentEstimate")
         recent = estimates[-5:]
         print(f"{lang} progress (last {len(recent)} session{'s' if len(recent) != 1 else ''}):")
         if recent:
@@ -243,7 +247,9 @@ def parse_args() -> argparse.Namespace:
         "goal": sorted(ALLOWED_GOALS),
         "mode": sorted(ALLOWED_MODES),
         "band": None,
+        "estimate": None,
         "focus": sorted(ALLOWED_IELTS_FOCUS),
+        "practice-focus": sorted(ALLOWED_IELTS_FOCUS),
         "level": None,
     }
     for name, choices in value_commands.items():
@@ -258,12 +264,22 @@ def parse_args() -> argparse.Namespace:
 
     subparsers.add_parser("target-list")
 
-    child = subparsers.add_parser("record-band", help="Record an IELTS band estimate for a language.")
+    child = subparsers.add_parser("track-estimate", help="Record a proficiency estimate for a language.")
     child.add_argument("language", help="Language name, e.g. English")
-    child.add_argument("band", help="Band score, e.g. 5.5")
+    child.add_argument("band", help="Estimate value, e.g. 5.5 or N4")
     child.add_argument("--text", default="", help="The user's original message (optional, for history review)")
 
-    child = subparsers.add_parser("progress", help="Show recent band history.")
+    child = subparsers.add_parser("record-estimate", help="Legacy alias for track-estimate.")
+    child.add_argument("language", help="Language name, e.g. English")
+    child.add_argument("band", help="Estimate value, e.g. 5.5 or N4")
+    child.add_argument("--text", default="", help="The user's original message (optional, for history review)")
+
+    child = subparsers.add_parser("record-band", help="Legacy alias for record-estimate.")
+    child.add_argument("language", help="Language name, e.g. English")
+    child.add_argument("band", help="Estimate value, e.g. 5.5 or N4")
+    child.add_argument("--text", default="", help="The user's original message (optional, for history review)")
+
+    child = subparsers.add_parser("progress", help="Show recent estimate history.")
     child.add_argument("language", nargs="?", default=None, help="Optional language to filter by")
 
     subparsers.add_parser("progress-path", help="Print the progress file path for the current platform.")
@@ -274,16 +290,18 @@ def parse_args() -> argparse.Namespace:
 
 
 def normalize_goal_state(config: dict[str, object]) -> None:
-    goal = config.get("goal")
-    mode = config.get("mode")
-    focus = config.get("ieltsFocus")
+    goal = canonicalize_goal(config.get("goal"), default="everyday")
+    mode = canonicalize_mode(config.get("mode"), default="everyday")
+    focus = config.get("scoringFocus")
+    config["goal"] = goal
+    config["mode"] = mode
 
     if goal == "everyday":
         config["mode"] = "everyday"
         return
 
-    if goal == "ielts" and mode == "everyday":
-        config["mode"] = "ielts-speaking" if focus == "speaking" else "ielts-writing"
+    if goal == "scored" and mode == "everyday":
+        config["mode"] = "scored-speaking" if focus == "speaking" else "scored-writing"
 
 
 def list_targets(config: dict[str, Any]) -> list[str]:
@@ -306,8 +324,8 @@ def _target_defaults(config: dict[str, Any], language: str) -> dict[str, Any]:
     target["targetLanguage"] = language
     target["goal"] = "everyday"
     target["mode"] = "everyday"
-    target["ieltsFocus"] = "both"
-    target["targetBand"] = ""
+    target["scoringFocus"] = "both"
+    target["targetEstimate"] = ""
     target["currentLevel"] = ""
     for key in TARGET_FALLBACK_KEYS:
         target[key] = config.get(key)
@@ -374,30 +392,31 @@ def apply_command(
         config["responseLanguage"] = args.value
         return f"Responses will use: {args.value}"
     if args.command == "goal":
-        config["goal"] = args.value
+        config["goal"] = canonicalize_goal(args.value, default="everyday")
         normalize_goal_state(config)
-        return f"Goal updated to: {args.value}"
+        return f"Goal updated to: {config['goal']}"
     if args.command == "mode":
-        config["mode"] = args.value
-        if args.value.startswith("ielts"):
-            config["goal"] = "ielts"
-        elif args.value == "everyday":
+        mode = canonicalize_mode(args.value, default="everyday")
+        config["mode"] = mode
+        if mode in {"scored-writing", "scored-speaking"}:
+            config["goal"] = "scored"
+        elif mode == "everyday":
             config["goal"] = "everyday"
-        return f"Mode updated to: {args.value}"
-    if args.command == "band":
-        config["targetBand"] = args.value
-        return f"Target band updated to: {args.value}"
-    if args.command == "focus":
-        config["ieltsFocus"] = args.value
-        if config.get("goal") == "ielts" and config.get("mode") in {
-            "ielts-speaking",
-            "ielts-writing",
+        return f"Mode updated to: {mode}"
+    if args.command in {"band", "estimate"}:
+        config["targetEstimate"] = args.value
+        return f"Target estimate updated to: {args.value}"
+    if args.command in {"focus", "practice-focus"}:
+        config["scoringFocus"] = args.value
+        if config.get("goal") == "scored" and config.get("mode") in {
+            "scored-speaking",
+            "scored-writing",
         }:
             if args.value == "speaking":
-                config["mode"] = "ielts-speaking"
+                config["mode"] = "scored-speaking"
             elif args.value == "writing":
-                config["mode"] = "ielts-writing"
-        return f"IELTS focus updated to: {args.value}"
+                config["mode"] = "scored-writing"
+        return f"Scoring focus updated to: {args.value}"
     if args.command == "level":
         config["currentLevel"] = args.value
         return f"Current level updated to: {args.value}"
@@ -444,8 +463,8 @@ def format_status(
         f"Mode:              {config['mode']}",
         f"Style:             {config['style']}",
         f"Response in:       {config['responseLanguage']}",
-        f"IELTS focus:       {config['ieltsFocus']}",
-        f"Target band:       {config['targetBand'] or '-'}",
+        f"Scoring focus:     {config['scoringFocus']}",
+        f"Target estimate:   {config['targetEstimate'] or '-'}",
         f"Current level:     {config['currentLevel'] or '-'}",
         f"Targets:           {', '.join(list_targets(config)) or '-'}",
         f"Status:            {status}",
@@ -516,8 +535,8 @@ def sync_claude_md(config: dict[str, Any], platform: str) -> None:
 def main() -> int:
     args = parse_args()
 
-    if args.command == "record-band":
-        return cmd_record_band(args)
+    if args.command in {"record-band", "record-estimate", "track-estimate"}:
+        return cmd_record_estimate(args)
     if args.command == "progress":
         return cmd_progress(args)
     if args.command == "progress-path":

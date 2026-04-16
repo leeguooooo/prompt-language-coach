@@ -4,18 +4,20 @@ import json
 from pathlib import Path
 from typing import Any, Optional
 
+from shared.config.schema import canonicalize_mode
 from shared.pedagogy.modes import guidance_for_mode, sections_for_mode
 from shared.proficiency import estimate_sort_value, scale_for_language
 
 
 def _scoring_guidance(target_language: str, mode: str) -> list[str]:
-    if not mode.startswith("ielts"):
+    normalized = canonicalize_mode(mode, default="everyday")
+    if normalized not in {"scored-writing", "scored-speaking"}:
         return []
     return list(scale_for_language(target_language).guidance_lines)
 
 
 def _sections_for_prompt(target_language: str, mode: str) -> list[str]:
-    sections = list(sections_for_mode(mode))
+    sections = list(sections_for_mode(canonicalize_mode(mode, default="everyday")))
     scale = scale_for_language(target_language)
     if sections and sections[0] == "Band estimate":
         sections[0] = scale.estimate_label
@@ -39,7 +41,9 @@ def _progress_note(progress_path: str) -> Optional[str]:
         entry = data[language]
         scale = scale_for_language(language, entry.get("scale"))
         estimates: list[dict[str, str]] = entry.get("estimates", [])
-        current_band = entry.get("currentBand")
+        current_band = entry.get("currentEstimate")
+        if current_band is None:
+            current_band = entry.get("currentBand")
         recent = estimates[-3:]
         if not recent:
             lines.append(f"- {language}: no data yet")
@@ -67,15 +71,18 @@ def _progress_note(progress_path: str) -> Optional[str]:
 
 
 def _box_title_for_mode(mode: str, detected_language: str | None = None) -> str:
+    normalized = canonicalize_mode(mode, default="everyday")
     if detected_language is not None:
-        if mode == "ielts-writing":
-            return f"📚 {detected_language} · IELTS Writing"
+        if normalized == "scored-writing":
+            return f"📚 {detected_language} · Scored Writing"
+        if normalized == "scored-speaking":
+            return f"📚 {detected_language} · Scored Speaking"
         return f"📚 {detected_language} Coaching"
-    if mode == "ielts-writing":
-        return "📚 IELTS Writing Coaching"
-    if mode == "ielts-speaking":
-        return "📚 IELTS Speaking Coaching"
-    if mode == "review":
+    if normalized == "scored-writing":
+        return "📚 Scored Writing Coaching"
+    if normalized == "scored-speaking":
+        return "📚 Scored Speaking Coaching"
+    if normalized == "review":
         return "📚 Review Session"
     return "📚 Language Coaching"
 
@@ -132,8 +139,8 @@ def _target_summary(
             f"mode={target['mode']}, style={target['style']}."
         )
     ]
-    if target.get("targetBand"):
-        lines.append(f"  Target band: {target['targetBand']}.")
+    if target.get("targetEstimate"):
+        lines.append(f"  Target estimate: {target['targetEstimate']}.")
     if target.get("currentLevel"):
         lines.append(f"  Current level: {target['currentLevel']}.")
     if target.get("responseLanguage"):
@@ -206,9 +213,9 @@ def build_prompt(
             f"Style: {config['style']}.",
         ]
 
-        if config["goal"] == "ielts":
-            if config.get("targetBand"):
-                base.append(f"Target band: {config['targetBand']}.")
+        if config["goal"] == "scored":
+            if config.get("targetEstimate"):
+                base.append(f"Target estimate: {config['targetEstimate']}.")
             if config.get("currentLevel"):
                 base.append(f"Current level: {config['currentLevel']}.")
 
@@ -255,13 +262,13 @@ def build_prompt(
         platform = config.get("platform", "claude")
         parts.append(
             "Progress recording — run this command ONLY when ALL three conditions are met:\n"
-            "1. The active coaching mode is ielts-writing or ielts-speaking (NOT everyday or review).\n"
+            "1. The active coaching mode is scored-writing or scored-speaking (NOT everyday or review).\n"
             "2. The user's message was written in a target language (NOT purely in the native language).\n"
             "3. You provided a scale estimate in the coaching box.\n"
             "Use IELTS for English (e.g. 5.5, 6.0), JLPT for Japanese (e.g. N5, N4), and CEFR for other languages (e.g. A2, B1).\n"
             "When all three are true, silently run (no output needed):\n"
             f'python3 "{repo_root}/scripts/manage_language_coach.py" '
-            f'--platform {platform} record-band "<detected_language>" "<estimated_band>" '
+            f'--platform {platform} track-estimate "<detected_language>" "<estimated_band>" '
             '--text "<user message, first 200 chars, inner double-quotes replaced with single-quotes>"\n'
             'Use the exact detected language name and the exact estimate string (e.g. "6.0", "N5", "B1").\n'
             "Skip the command for everyday mode, review mode, or pure native-language input."

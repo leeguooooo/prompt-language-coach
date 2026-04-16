@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from shared.config.schema import canonicalize_mode
+
 MIXED_LANGUAGE_GUIDANCE = (
     "If the user mixes native-language words or phrases into their "
     "target-language message (because they cannot express the full meaning "
@@ -44,29 +46,31 @@ REVIEW_SECTIONS = (
 
 
 def sections_for_mode(mode: str) -> tuple[str, ...]:
-    if mode == "ielts-writing":
+    normalized = canonicalize_mode(mode, default="everyday")
+    if normalized == "scored-writing":
         return IELTS_WRITING_SECTIONS
-    if mode == "ielts-speaking":
+    if normalized == "scored-speaking":
         return IELTS_SPEAKING_SECTIONS
-    if mode == "review":
+    if normalized == "review":
         return REVIEW_SECTIONS
     return EVERYDAY_SECTIONS
 
 
 def guidance_for_mode(mode: str) -> tuple[str, ...]:
-    if mode == "ielts-writing":
+    normalized = canonicalize_mode(mode, default="everyday")
+    if normalized == "scored-writing":
         return (
-            "Optimize feedback for IELTS writing improvement rather than grammar-only correction.",
+            "Optimize feedback for score-oriented writing improvement rather than grammar-only correction.",
             "Prefer rough band ranges over false precision.",
             MIXED_LANGUAGE_GUIDANCE,
         )
-    if mode == "ielts-speaking":
+    if normalized == "scored-speaking":
         return (
             "Optimize feedback for spoken naturalness, fluency, and lexical resource.",
             "Do not claim to score pronunciation from text alone.",
             MIXED_LANGUAGE_GUIDANCE,
         )
-    if mode == "review":
+    if normalized == "review":
         return ("Summarize patterns across recent interactions.",)
     return (
         "Keep coaching compact and low-interruption.",

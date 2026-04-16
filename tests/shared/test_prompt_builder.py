@@ -31,10 +31,10 @@ class PromptBuilderTests(unittest.TestCase):
             },
             {
                 "targetLanguage": "Japanese",
-                "goal": "ielts",
+                "goal": "scored",
                 "mode": "ielts-speaking",
                 "style": "concise",
-                "targetBand": "7.0",
+                "targetEstimate": "N3",
             },
         ]
 
@@ -67,10 +67,10 @@ class PromptBuilderTests(unittest.TestCase):
         config["targets"] = [
             {
                 "targetLanguage": "English",
-                "goal": "ielts",
-                "mode": "ielts-writing",
+                "goal": "scored",
+                "mode": "scored-writing",
                 "style": "teaching",
-                "targetBand": "7.5",
+                "targetEstimate": "7.5",
             },
             {
                 "targetLanguage": "Japanese",
@@ -83,11 +83,12 @@ class PromptBuilderTests(unittest.TestCase):
         prompt = build_prompt(config)
 
         self.assertIn(
-            "Substitute the detected language name into the box title and use '╭─ 📚 {DetectedLanguage} · IELTS Writing ─' as the opening line.",
+            "Substitute the detected language name into the box title and use '╭─ 📚 {DetectedLanguage} · Scored Writing ─' as the opening line.",
             prompt,
         )
         self.assertIn("English", prompt)
         self.assertIn("Japanese", prompt)
+        self.assertIn("Target estimate: 7.5.", prompt)
 
     def test_everyday_prompt_stays_compact(self) -> None:
         config = json.loads(
@@ -111,25 +112,27 @@ class PromptBuilderTests(unittest.TestCase):
         config = json.loads(
             (FIXTURES / "config_ielts_writing.json").read_text(encoding="utf-8")
         )
-        prompt = build_prompt(config)
+        prompt = build_prompt(config, repo_root="/tmp/repo")
 
         self.assertIn("Band estimate", prompt)
+        self.assertIn("Target estimate: 7.0.", prompt)
         self.assertIn("Reusable pattern", prompt)
         self.assertIn("Mini drill", prompt)
         self.assertIn(MIXED_LANGUAGE_GUIDANCE, prompt)
-        self.assertIn("╭─ 📚 IELTS Writing Coaching ─", prompt)
+        self.assertIn("╭─ 📚 Scored Writing Coaching ─", prompt)
         self.assertIn("Do not start above 5.5 on a first scored sample", prompt)
+        self.assertIn("track-estimate", prompt)
 
     def test_ielts_speaking_prompt_avoids_fake_pronunciation_scoring(self) -> None:
         config = json.loads(
             (FIXTURES / "config_ielts_writing.json").read_text(encoding="utf-8")
         )
-        config["mode"] = "ielts-speaking"
+        config["mode"] = "scored-speaking"
         prompt = build_prompt(config)
 
         self.assertIn("Do not claim to score pronunciation from text alone", prompt)
         self.assertIn(MIXED_LANGUAGE_GUIDANCE, prompt)
-        self.assertIn("╭─ 📚 IELTS Speaking Coaching ─", prompt)
+        self.assertIn("╭─ 📚 Scored Speaking Coaching ─", prompt)
 
     def test_japanese_prompt_switches_scoring_scale_to_jlpt(self) -> None:
         config = json.loads(
@@ -137,11 +140,12 @@ class PromptBuilderTests(unittest.TestCase):
         )
         config["targetLanguage"] = "Japanese"
         config["currentLevel"] = "N5"
-        config["targetBand"] = "N3"
+        config["targetEstimate"] = "N3"
 
         prompt = build_prompt(config)
 
         self.assertIn("Estimate using JLPT levels (N5, N4, N3, N2, N1)", prompt)
+        self.assertIn("Target estimate: N3.", prompt)
         self.assertIn("Default to N5 on a first scored sample", prompt)
 
 

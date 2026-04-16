@@ -64,12 +64,12 @@ Every message you send gets coached **before** the assistant answers. The coachi
 (Claude's actual answer follows here)
 ```
 
-**IELTS Writing mode** — you write:
+**Scored Writing mode** — you write:
 > "The environment is very important and we should protect it because many reason."
 
 **The assistant coaches:**
 ```
-╭─ 📚 English · IELTS Writing ──────────────
+╭─ 📚 English · Scored Writing ─────────────
 │ Band 估分：  5.0–5.5
 │ 亮点：       主题明确，有因果逻辑意识
 │ 扣分项：     "many reason" → "many reasons"；论点空洞，缺乏具体论据
@@ -149,15 +149,15 @@ Run `/language-coach:language-coach setup` and answer the onboarding questions:
 
 1. What is your native language?
 2. What language are you learning?
-3. What is your main goal? (`everyday` / `ielts`)
+3. What is your main goal? (`everyday` / `scored`)
 4. Which coaching style? (`teaching` / `concise` / `translate`)
 5. Which response language should be used after coaching? (`native` / `target`)
 
-If you choose `ielts`, the setup flow also stores:
+If you choose `scored`, the setup flow also stores:
 
 1. Active scored mode: `scored-writing` or `scored-speaking`
-2. IELTS focus: `writing`, `speaking`, or `both`
-3. Target band
+2. Scoring focus: `writing`, `speaking`, or `both`
+3. Target estimate
 4. Current level
 
 After setup, Claude coaching activates automatically on every prompt.
@@ -177,16 +177,18 @@ On **Claude Code**, use `/language-coach:language-coach ...`.
 | `/language-coach target <lang>` | Change the language you are learning |
 | `/language-coach style <mode>` | Switch coaching style: `teaching`, `concise`, `translate` |
 | `/language-coach response <mode>` | Switch response language: `native` or `target` |
-| `/language-coach goal <mode>` | Switch learning goal: `everyday` or `ielts` |
+| `/language-coach goal <mode>` | Switch learning goal: `everyday` or `scored` |
 | `/language-coach mode <mode>` | Switch coaching mode: `everyday`, `scored-writing`, `scored-speaking`, or `review` |
-| `/language-coach focus <mode>` | Set IELTS focus: `writing`, `speaking`, or `both` |
-| `/language-coach band <score>` | Store your IELTS target band |
+| `/language-coach practice-focus <mode>` | Set scoring focus: `writing`, `speaking`, or `both` |
+| `/language-coach focus <mode>` | Legacy alias for `practice-focus` |
+| `/language-coach estimate <value>` | Store your target estimate |
+| `/language-coach band <score>` | Legacy alias for `estimate` |
 | `/language-coach level <text>` | Store your current level |
 | `/language-coach status` | Show current config |
 | `/language-coach off` | Pause coaching (config preserved) |
 | `/language-coach on` | Resume coaching |
-| `/language-coach progress` | Show IELTS band history for all languages |
-| `/language-coach progress <lang>` | Show band history for a specific language |
+| `/language-coach progress` | Show estimate history for all languages |
+| `/language-coach progress <lang>` | Show estimate history for a specific language |
 
 ---
 
@@ -205,7 +207,7 @@ Estimates are automatically recorded to the shared progress file (`~/.prompt-lan
 
 1. The active mode is `scored-writing` or `scored-speaking`
 2. The user wrote in a target language (not purely in the native language)
-3. Claude gives a numeric band estimate in the coaching box
+3. Claude gives a scale estimate in the coaching box
 
 Progress is stored permanently and never deleted. Use `/language-coach:language-coach progress` to see your history:
 
@@ -217,7 +219,7 @@ English progress (last 5 sessions):
 Current estimate: 6.0
 ```
 
-If you also use [Claude Status Bar](https://github.com/leeguooooo/claude-code-usage-bar), the current band and trend appear automatically in the status bar (`📚 EN:6.0↑`), and the pet reacts to your coaching activity.
+If you also use [Claude Status Bar](https://github.com/leeguooooo/claude-code-usage-bar), the current estimate and trend appear automatically in the status bar (`📚 EN:6.0↑`), and the pet reacts to your coaching activity.
 
 ---
 
@@ -245,13 +247,13 @@ The normalized JSON schema:
 {
   "nativeLanguage": "Chinese",
   "targetLanguage": "English",
-  "goal": "ielts",
+  "goal": "scored",
   "mode": "scored-writing",
   "style": "teaching",
   "responseLanguage": "target",
   "enabled": true,
-  "ieltsFocus": "writing",
-  "targetBand": "7.0",
+  "scoringFocus": "writing",
+  "targetEstimate": "7.0",
   "currentLevel": "6.0",
   "version": 1
 }
@@ -261,13 +263,13 @@ The normalized JSON schema:
 |---|---|---|---|
 | `nativeLanguage` | any language name | `"Chinese"` | Your native language |
 | `targetLanguage` | any language name | `"English"` | Language you are learning |
-| `goal` | `everyday` / `ielts` | `"everyday"` | Top-level learning goal |
+| `goal` | `everyday` / `scored` | `"everyday"` | Top-level learning goal |
 | `mode` | `everyday` / `scored-writing` / `scored-speaking` / `review` | `"everyday"` | Active coaching mode |
 | `style` | `teaching` / `concise` / `translate` | `"teaching"` | Output verbosity |
 | `responseLanguage` | `native` / `target` | `"native"` | Language used after coaching |
 | `enabled` | `true` / `false` | `true` | Toggle on/off without losing config |
-| `ieltsFocus` | `writing` / `speaking` / `both` | `"both"` | Stored IELTS emphasis |
-| `targetBand` | free text | `""` | IELTS target band |
+| `scoringFocus` | `writing` / `speaking` / `both` | `"both"` | Stored scored-mode emphasis |
+| `targetEstimate` | free text | `""` | Target estimate on the active language scale |
 | `currentLevel` | free text | `""` | Current estimated level |
 | `version` | integer | `1` | Schema version |
 
@@ -382,7 +384,7 @@ Built by [leeguooooo](https://github.com/leeguooooo) — a senior frontend engin
 
 This walkthrough uses the Claude Code command surface, but the coaching model and stored config concepts are the same on Codex and Cursor.
 
-A complete example: Chinese high school student learning both English and Japanese for IELTS (target band 6.5).
+A complete example: Chinese high school student learning both English and Japanese in scored mode (target estimate 6.5).
 
 ### 1. Install and run setup
 
@@ -398,9 +400,9 @@ The wizard asks one question at a time:
 ```
 What is your native language?          → Chinese
 What language are you learning?        → english, japanese
-What is your main goal?                → ielts
+What is your main goal?                → scored
 Which scored mode?                     → scored-writing and scored-speaking
-Target band?                           → 6.5
+Target estimate?                       → 6.5
 Current level?                         → 高中生水平
 Coaching style?                        → teaching
 Response language after coaching?      → native
@@ -412,11 +414,11 @@ Final config stored at `~/.claude/language-coach.json`:
 |---|---|
 | Native language | Chinese |
 | Target languages | English + Japanese (auto-detected) |
-| Goal | IELTS |
-| Mode | IELTS Writing |
+| Goal | scored |
+| Mode | Scored Writing |
 | Style | Teaching (detailed) |
 | Response language | Chinese (native) |
-| Target band | 6.5 |
+| Target estimate | 6.5 |
 | Current level | 高中生水平 |
 
 ### 2. Reload and write
@@ -432,7 +434,7 @@ From now on every message is coached automatically. The coaching box appears **b
 User types: `"ok, It's work well."`
 
 ```
-╭─ 📚 English · IELTS Writing ──────────────
+╭─ 📚 English · Scored Writing ─────────────
 │ Band 估分：  这句较短，但有语法错误
 │ 亮点：       用了副词 "well" 修饰动词 ✓
 │ 扣分项：     "It's work well" — it's = it is，后面不能接动词原形
@@ -447,7 +449,7 @@ User types: `"ok, It's work well."`
 **Writing Japanese** triggers the same structure with a Japanese-specific header:
 
 ```
-╭─ 📚 Japanese · IELTS Writing ─────────────
+╭─ 📚 Japanese · Scored Writing ────────────
 │ ...
 ╰─────────────────────────────────────────────
 ```

@@ -19,8 +19,8 @@ class ManageLanguageCoachTests(unittest.TestCase):
             "style": "teaching",
             "responseLanguage": "native",
             "enabled": True,
-            "ieltsFocus": "both",
-            "targetBand": "",
+            "scoringFocus": "both",
+            "targetEstimate": "",
             "currentLevel": "",
             "targets": [],
             "version": 1,
@@ -144,8 +144,8 @@ class ManageLanguageCoachTests(unittest.TestCase):
                         "style": "teaching",
                         "responseLanguage": "native",
                         "enabled": True,
-                        "ieltsFocus": "both",
-                        "targetBand": "",
+                        "scoringFocus": "both",
+                        "targetEstimate": "",
                         "currentLevel": "",
                         "version": 1,
                     }
@@ -169,8 +169,48 @@ class ManageLanguageCoachTests(unittest.TestCase):
 
             self.assertEqual(result.returncode, 0, result.stderr)
             updated = json.loads(config_path.read_text(encoding="utf-8"))
-            self.assertEqual(updated["mode"], "ielts-writing")
-            self.assertEqual(updated["goal"], "ielts")
+            self.assertEqual(updated["mode"], "scored-writing")
+            self.assertEqual(updated["goal"], "scored")
+
+    def test_estimate_command_updates_target_estimate(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            config_path = Path(tmp) / "language-coach.json"
+            config_path.write_text(
+                json.dumps(
+                    {
+                        "nativeLanguage": "Chinese",
+                        "targetLanguage": "Japanese",
+                        "goal": "scored",
+                        "mode": "scored-writing",
+                        "style": "teaching",
+                        "responseLanguage": "target",
+                        "enabled": True,
+                        "scoringFocus": "writing",
+                        "targetEstimate": "N4",
+                        "currentLevel": "N5",
+                        "version": 1,
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            result = subprocess.run(
+                [
+                    "python3",
+                    "scripts/manage_language_coach.py",
+                    "--config",
+                    str(config_path),
+                    "estimate",
+                    "N3",
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            updated = json.loads(config_path.read_text(encoding="utf-8"))
+            self.assertEqual(updated["targetEstimate"], "N3")
 
     def test_target_add_reloads_current_config_but_starts_new_language_conservatively(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -180,13 +220,13 @@ class ManageLanguageCoachTests(unittest.TestCase):
                     {
                         "nativeLanguage": "Chinese",
                         "targetLanguage": "English",
-                        "goal": "ielts",
+                        "goal": "scored",
                         "mode": "ielts-writing",
                         "style": "teaching",
                         "responseLanguage": "target",
                         "enabled": True,
-                        "ieltsFocus": "writing",
-                        "targetBand": "7.0",
+                        "scoringFocus": "writing",
+                        "targetEstimate": "7.0",
                         "currentLevel": "6.0",
                         "version": 1,
                     }
@@ -201,8 +241,8 @@ class ManageLanguageCoachTests(unittest.TestCase):
                 "style": "teaching",
                 "responseLanguage": "native",
                 "enabled": True,
-                "ieltsFocus": "both",
-                "targetBand": "",
+                "scoringFocus": "both",
+                "targetEstimate": "",
                 "currentLevel": "",
                 "targets": [],
                 "version": 1,
@@ -242,12 +282,95 @@ class ManageLanguageCoachTests(unittest.TestCase):
             )
             self.assertEqual(japanese_target["goal"], "everyday")
             self.assertEqual(japanese_target["mode"], "everyday")
-            self.assertEqual(japanese_target["ieltsFocus"], "both")
-            self.assertEqual(japanese_target["targetBand"], "")
+            self.assertEqual(japanese_target["scoringFocus"], "both")
+            self.assertEqual(japanese_target["targetEstimate"], "")
             self.assertEqual(japanese_target["currentLevel"], "")
             self.assertEqual(japanese_target["responseLanguage"], "target")
 
-    def test_record_band_merges_progress_across_platforms_into_shared_file(self) -> None:
+    def test_status_uses_scored_labels(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            home = Path(tmp)
+            config_dir = home / ".codex"
+            config_dir.mkdir(parents=True, exist_ok=True)
+            (config_dir / "language-coach.json").write_text(
+                json.dumps(
+                    {
+                        "nativeLanguage": "Chinese",
+                        "targetLanguage": "Japanese",
+                        "goal": "scored",
+                        "mode": "scored-writing",
+                        "style": "teaching",
+                        "responseLanguage": "target",
+                        "enabled": True,
+                        "scoringFocus": "writing",
+                        "targetEstimate": "N3",
+                        "currentLevel": "N5",
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            result = subprocess.run(
+                [
+                    "python3",
+                    "scripts/manage_language_coach.py",
+                    "--platform",
+                    "codex",
+                    "status",
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+                env={"HOME": str(home)},
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn("Goal:              scored", result.stdout)
+            self.assertIn("Scoring focus:     writing", result.stdout)
+            self.assertIn("Target estimate:   N3", result.stdout)
+
+    def test_practice_focus_alias_updates_scoring_focus(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            config_path = Path(tmp) / "language-coach.json"
+            config_path.write_text(
+                json.dumps(
+                    {
+                        "nativeLanguage": "Chinese",
+                        "targetLanguage": "English",
+                        "goal": "scored",
+                        "mode": "scored-writing",
+                        "style": "teaching",
+                        "responseLanguage": "target",
+                        "enabled": True,
+                        "scoringFocus": "writing",
+                        "targetEstimate": "6.5",
+                        "currentLevel": "5.5",
+                        "version": 1,
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            result = subprocess.run(
+                [
+                    "python3",
+                    "scripts/manage_language_coach.py",
+                    "--config",
+                    str(config_path),
+                    "practice-focus",
+                    "speaking",
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            updated = json.loads(config_path.read_text(encoding="utf-8"))
+            self.assertEqual(updated["scoringFocus"], "speaking")
+            self.assertEqual(updated["mode"], "scored-speaking")
+
+    def test_track_estimate_merges_progress_across_platforms_into_shared_file(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             home = Path(tmp)
             shared_path = home / ".prompt-language-coach" / "language-progress.json"
@@ -259,7 +382,7 @@ class ManageLanguageCoachTests(unittest.TestCase):
                         "scripts/manage_language_coach.py",
                         "--platform",
                         platform,
-                        "record-band",
+                        "track-estimate",
                         "English",
                         band,
                     ],
@@ -272,7 +395,7 @@ class ManageLanguageCoachTests(unittest.TestCase):
 
             self.assertTrue(shared_path.exists())
             shared = json.loads(shared_path.read_text(encoding="utf-8"))
-            self.assertEqual(shared["English"]["currentBand"], "6.0")
+            self.assertEqual(shared["English"]["currentEstimate"], "6.0")
 
             for legacy_path in (
                 home / ".codex" / "language-progress.json",
@@ -281,7 +404,7 @@ class ManageLanguageCoachTests(unittest.TestCase):
             ):
                 self.assertTrue(legacy_path.exists())
                 mirrored = json.loads(legacy_path.read_text(encoding="utf-8"))
-                self.assertEqual(mirrored["English"]["currentBand"], "6.0")
+                self.assertEqual(mirrored["English"]["currentEstimate"], "6.0")
 
 
 if __name__ == "__main__":

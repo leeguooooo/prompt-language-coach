@@ -29,10 +29,10 @@ class ConfigIOTests(unittest.TestCase):
                             },
                             {
                                 "targetLanguage": "Japanese",
-                                "goal": "ielts",
+                                "goal": "scored",
                                 "mode": "ielts-speaking",
                                 "style": "concise",
-                                "targetBand": "7.0",
+                                "targetEstimate": "N3",
                             },
                         ],
                     }
@@ -45,8 +45,9 @@ class ConfigIOTests(unittest.TestCase):
         self.assertEqual(len(config["targets"]), 2)
         self.assertEqual(config["targets"][0]["targetLanguage"], "English")
         self.assertEqual(config["targets"][1]["targetLanguage"], "Japanese")
-        self.assertEqual(config["targets"][1]["mode"], "ielts-speaking")
-        self.assertEqual(config["targets"][1]["goal"], "ielts")
+        self.assertEqual(config["targets"][1]["mode"], "scored-speaking")
+        self.assertEqual(config["targets"][1]["goal"], "scored")
+        self.assertEqual(config["targets"][1]["targetEstimate"], "N3")
         self.assertEqual(config["targets"][1]["responseLanguage"], "native")
 
     def test_load_config_normalizes_legacy_fields(self) -> None:
@@ -75,7 +76,7 @@ class ConfigIOTests(unittest.TestCase):
         self.assertEqual(config["version"], 1)
         self.assertEqual(config["targets"], [])
 
-    def test_load_config_normalizes_ielts_mode_back_to_ielts_goal(self) -> None:
+    def test_load_config_normalizes_legacy_ielts_shape_to_scored_shape(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "language-coach.json"
             path.write_text(
@@ -83,11 +84,13 @@ class ConfigIOTests(unittest.TestCase):
                     {
                         "nativeLanguage": "Chinese",
                         "targetLanguage": "English",
-                        "goal": "everyday",
+                        "goal": "ielts",
                         "mode": "ielts-speaking",
                         "style": "teaching",
                         "responseLanguage": "native",
                         "enabled": True,
+                        "ieltsFocus": "speaking",
+                        "targetBand": "6.5",
                     }
                 ),
                 encoding="utf-8",
@@ -95,8 +98,10 @@ class ConfigIOTests(unittest.TestCase):
 
             config = load_config(path)
 
-        self.assertEqual(config["goal"], "ielts")
-        self.assertEqual(config["mode"], "ielts-speaking")
+        self.assertEqual(config["goal"], "scored")
+        self.assertEqual(config["mode"], "scored-speaking")
+        self.assertEqual(config["scoringFocus"], "speaking")
+        self.assertEqual(config["targetEstimate"], "6.5")
 
     def test_save_config_persists_normalized_shape(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -106,13 +111,13 @@ class ConfigIOTests(unittest.TestCase):
                 {
                     "nativeLanguage": "Japanese",
                     "targetLanguage": "English",
-                    "goal": "ielts",
-                    "mode": "ielts-writing",
+                    "goal": "scored",
+                    "mode": "scored-writing",
                     "style": "concise",
                     "responseLanguage": "target",
                     "enabled": True,
-                    "ieltsFocus": "writing",
-                    "targetBand": "7.0",
+                    "scoringFocus": "writing",
+                    "targetEstimate": "7.0",
                     "currentLevel": "",
                     "version": 1,
                 },
@@ -121,7 +126,12 @@ class ConfigIOTests(unittest.TestCase):
             raw = json.loads(path.read_text(encoding="utf-8"))
 
         self.assertEqual(raw["nativeLanguage"], "Japanese")
-        self.assertEqual(raw["mode"], "ielts-writing")
+        self.assertEqual(raw["goal"], "scored")
+        self.assertEqual(raw["mode"], "scored-writing")
+        self.assertEqual(raw["scoringFocus"], "writing")
+        self.assertEqual(raw["targetEstimate"], "7.0")
+        self.assertNotIn("ieltsFocus", raw)
+        self.assertNotIn("targetBand", raw)
         self.assertEqual(raw["version"], 1)
 
 

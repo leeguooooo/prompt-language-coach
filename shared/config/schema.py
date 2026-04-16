@@ -2,16 +2,27 @@ from __future__ import annotations
 
 from typing import Any
 
-ALLOWED_GOALS = {"everyday", "ielts"}
-ALLOWED_MODES = {"everyday", "ielts-writing", "ielts-speaking", "review"}
+CANONICAL_GOALS = {"everyday", "scored"}
+LEGACY_GOAL_ALIASES = {
+    "ielts": "scored",
+}
+ALLOWED_GOALS = CANONICAL_GOALS | set(LEGACY_GOAL_ALIASES)
+CANONICAL_MODES = {"everyday", "scored-writing", "scored-speaking", "review"}
+LEGACY_MODE_ALIASES = {
+    "ielts-writing": "scored-writing",
+    "ielts-speaking": "scored-speaking",
+}
+ALLOWED_MODES = CANONICAL_MODES | set(LEGACY_MODE_ALIASES)
 ALLOWED_STYLES = {"teaching", "concise", "translate"}
 ALLOWED_RESPONSE_LANGUAGES = {"native", "target"}
 ALLOWED_IELTS_FOCUS = {"writing", "speaking", "both"}
-IELTS_MODES = {"ielts-writing", "ielts-speaking"}
+IELTS_MODES = {"scored-writing", "scored-speaking"}
 
 LEGACY_KEY_MAP = {
     "native": "nativeLanguage",
     "target": "targetLanguage",
+    "ieltsFocus": "scoringFocus",
+    "targetBand": "targetEstimate",
 }
 
 TARGET_OVERRIDE_KEYS = (
@@ -20,31 +31,43 @@ TARGET_OVERRIDE_KEYS = (
     "mode",
     "style",
     "responseLanguage",
-    "ieltsFocus",
-    "targetBand",
+    "scoringFocus",
+    "targetEstimate",
     "currentLevel",
 )
+
+
+def canonicalize_goal(goal: str | None, *, default: str) -> str:
+    if not goal:
+        return default
+    normalized = LEGACY_GOAL_ALIASES.get(goal, goal)
+    return normalized if normalized in CANONICAL_GOALS else default
+
+
+def canonicalize_mode(mode: str | None, *, default: str) -> str:
+    if not mode:
+        return default
+    normalized = LEGACY_MODE_ALIASES.get(mode, mode)
+    return normalized if normalized in CANONICAL_MODES else default
 
 
 def _normalize_goal_mode_fields(
     data: dict[str, Any], defaults: dict[str, Any]
 ) -> dict[str, Any]:
-    if data["goal"] not in ALLOWED_GOALS:
-        data["goal"] = defaults["goal"]
-    if data["mode"] not in ALLOWED_MODES:
-        data["mode"] = defaults["mode"]
+    data["goal"] = canonicalize_goal(data.get("goal"), default=defaults["goal"])
+    data["mode"] = canonicalize_mode(data.get("mode"), default=defaults["mode"])
     if data["style"] not in ALLOWED_STYLES:
         data["style"] = defaults["style"]
     if data["responseLanguage"] not in ALLOWED_RESPONSE_LANGUAGES:
         data["responseLanguage"] = defaults["responseLanguage"]
-    if data["ieltsFocus"] not in ALLOWED_IELTS_FOCUS:
-        data["ieltsFocus"] = defaults["ieltsFocus"]
+    if data["scoringFocus"] not in ALLOWED_IELTS_FOCUS:
+        data["scoringFocus"] = defaults["scoringFocus"]
 
     if data["mode"] in IELTS_MODES:
-        data["goal"] = "ielts"
+        data["goal"] = "scored"
 
-    if data["goal"] == "ielts" and data["mode"] == "everyday":
-        data["mode"] = "ielts-writing"
+    if data["goal"] == "scored" and data["mode"] == "everyday":
+        data["mode"] = "scored-writing"
 
     return data
 

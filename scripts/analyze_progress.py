@@ -131,7 +131,7 @@ def analyze_language(language: str, entry: dict[str, Any]) -> dict[str, Any]:
         "momentum": momentum,
         "projected_weeks_to_target": projected_weeks,
         "target_band": target_band,
-        "history": [{"date": str(d), "band": display, "text": t} for d, _sort, display, t in dated],
+        "history": [{"date": str(d), "estimate": display, "text": t} for d, _sort, display, t in dated],
     }
 
 
@@ -184,9 +184,9 @@ def _format_report(analyses: list[dict[str, Any]]) -> str:
             for entry in a["history"]:
                 text = entry.get("text", "")
                 if text:
-                    lines.append(f"    {entry['date']}  band {entry['band']}  \"{text}\"")
+                    lines.append(f"    {entry['date']}  estimate {entry['estimate']}  \"{text}\"")
                 else:
-                    lines.append(f"    {entry['date']}  band {entry['band']}")
+                    lines.append(f"    {entry['date']}  estimate {entry['estimate']}")
 
         lines.append("")
 
@@ -200,7 +200,7 @@ def main() -> int:
 
     if not data:
         print(f"No progress data found at {progress_path}.")
-        print("Start a coaching session in IELTS mode to record your first band estimate.")
+        print("Start a coaching session in scored mode to record your first estimate.")
         return 0
 
     if args.language:

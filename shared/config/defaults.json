@@ -20,8 +20,8 @@
   "style": "teaching",
   "responseLanguage": "native",
   "enabled": true,
-  "ieltsFocus": "both",
-  "targetBand": "",
+  "scoringFocus": "both",
+  "targetEstimate": "",
   "currentLevel": "",
   "version": 1
 }

@@ -69,7 +69,7 @@ Prompt Language Coach 原生支持 **Codex**、**Claude Code** 和 **Cursor**。
 
 **助手辅导：**
 ```
-╭─ 📚 English · IELTS Writing ──────────────
+╭─ 📚 English · Scored Writing ─────────────
 │ Band 估分：  5.0–5.5
 │ 亮点：       主题明确，有因果逻辑意识
 │ 扣分项：     "many reason" → "many reasons"；论点空洞，缺乏具体论据
@@ -149,15 +149,15 @@ codex marketplace add leeguooooo/prompt-language-coach
 
 1. 你的母语是什么？
 2. 你在学习哪种语言？
-3. 你的主要目标是什么？（`everyday` / `ielts`）
+3. 你的主要目标是什么？（`everyday` / `scored`）
 4. 选择辅导风格？（`teaching` / `concise` / `translate`）
 5. 辅导结束后用什么语言回复？（`native` / `target`）
 
-如果你选择 `ielts`，设置流程还会额外存储：
+如果你选择 `scored`，设置流程还会额外存储：
 
 1. 当前评分模式：`scored-writing` 或 `scored-speaking`
-2. IELTS 重点：`writing`、`speaking` 或 `both`
-3. 目标分数段（band）
+2. 评分重点：`writing`、`speaking` 或 `both`
+3. 目标估计值
 4. 当前水平
 
 设置完成后，Claude 辅导会在每条提示上自动激活。
@@ -177,16 +177,18 @@ codex marketplace add leeguooooo/prompt-language-coach
 | `/language-coach target <lang>` | 修改你正在学习的语言 |
 | `/language-coach style <mode>` | 切换辅导风格：`teaching`、`concise`、`translate` |
 | `/language-coach response <mode>` | 切换回复语言：`native` 或 `target` |
-| `/language-coach goal <mode>` | 切换学习目标：`everyday` 或 `ielts` |
+| `/language-coach goal <mode>` | 切换学习目标：`everyday` 或 `scored` |
 | `/language-coach mode <mode>` | 切换辅导模式：`everyday`、`scored-writing`、`scored-speaking` 或 `review` |
-| `/language-coach focus <mode>` | 设置 IELTS 重点：`writing`、`speaking` 或 `both` |
-| `/language-coach band <score>` | 存储你的 IELTS 目标分数段 |
+| `/language-coach practice-focus <mode>` | 设置评分重点：`writing`、`speaking` 或 `both` |
+| `/language-coach focus <mode>` | `practice-focus` 的旧别名 |
+| `/language-coach estimate <value>` | 存储你的目标估计值 |
+| `/language-coach band <score>` | `estimate` 的旧别名 |
 | `/language-coach level <text>` | 存储你的当前水平 |
 | `/language-coach status` | 显示当前配置 |
 | `/language-coach off` | 暂停辅导（配置保留） |
 | `/language-coach on` | 恢复辅导 |
-| `/language-coach progress` | 显示所有语言的雅思分数历史 |
-| `/language-coach progress <lang>` | 显示指定语言的分数历史 |
+| `/language-coach progress` | 显示所有语言的估计历史 |
+| `/language-coach progress <lang>` | 显示指定语言的估计历史 |
 
 ---
 
@@ -217,7 +219,7 @@ English progress (last 5 sessions):
 Current estimate: 6.0
 ```
 
-如果你也使用 [Claude Status Bar](https://github.com/leeguooooo/claude-code-usage-bar)，当前分数和趋势会自动显示在状态栏（`📚 EN:6.0↑`），宠物也会根据学习状态做出反应。
+如果你也使用 [Claude Status Bar](https://github.com/leeguooooo/claude-code-usage-bar)，当前估计值和趋势会自动显示在状态栏（`📚 EN:6.0↑`），宠物也会根据学习状态做出反应。
 
 ---
 
@@ -245,13 +247,13 @@ Current estimate: 6.0
 {
   "nativeLanguage": "Chinese",
   "targetLanguage": "English",
-  "goal": "ielts",
+  "goal": "scored",
   "mode": "scored-writing",
   "style": "teaching",
   "responseLanguage": "target",
   "enabled": true,
-  "ieltsFocus": "writing",
-  "targetBand": "7.0",
+  "scoringFocus": "writing",
+  "targetEstimate": "7.0",
   "currentLevel": "6.0",
   "version": 1
 }
@@ -261,13 +263,13 @@ Current estimate: 6.0
 |---|---|---|---|
 | `nativeLanguage` | 任意语言名称 | `"Chinese"` | 你的母语 |
 | `targetLanguage` | 任意语言名称 | `"English"` | 你正在学习的语言 |
-| `goal` | `everyday` / `ielts` | `"everyday"` | 顶层学习目标 |
+| `goal` | `everyday` / `scored` | `"everyday"` | 顶层学习目标 |
 | `mode` | `everyday` / `scored-writing` / `scored-speaking` / `review` | `"everyday"` | 当前激活的辅导模式 |
 | `style` | `teaching` / `concise` / `translate` | `"teaching"` | 输出详细程度 |
 | `responseLanguage` | `native` / `target` | `"native"` | 辅导后使用的回复语言 |
 | `enabled` | `true` / `false` | `true` | 开关辅导，不丢失配置 |
-| `ieltsFocus` | `writing` / `speaking` / `both` | `"both"` | 存储的 IELTS 侧重点 |
-| `targetBand` | 自由文本 | `""` | IELTS 目标分数段 |
+| `scoringFocus` | `writing` / `speaking` / `both` | `"both"` | 存储的评分模式侧重点 |
+| `targetEstimate` | 自由文本 | `""` | 当前语言量表上的目标估计值 |
 | `currentLevel` | 自由文本 | `""` | 当前估计水平 |
 | `version` | 整数 | `1` | 配置结构版本号 |
 
@@ -382,7 +384,7 @@ codex marketplace add .
 
 下面的示例使用 Claude Code 的命令界面，但辅导模型和配置概念在 Codex 与 Cursor 上是一致的。
 
-一个完整示例：中国高中生同时学习英语和日语，备考 IELTS（目标分数段 6.5）。
+一个完整示例：中国高中生同时学习英语和日语，使用评分模式练习（目标估计值 6.5）。
 
 ### 1. 安装并运行设置
 
@@ -398,9 +400,9 @@ codex marketplace add .
 ```
 What is your native language?          → Chinese
 What language are you learning?        → english, japanese
-What is your main goal?                → ielts
+What is your main goal?                → scored
 Which scored mode?                     → scored-writing and scored-speaking
-Target band?                           → 6.5
+Target estimate?                       → 6.5
 Current level?                         → 高中生水平
 Coaching style?                        → teaching
 Response language after coaching?      → native
@@ -412,11 +414,11 @@ Response language after coaching?      → native
 |---|---|
 | 母语 | Chinese |
 | 目标语言 | English + Japanese（自动检测） |
-| 学习目标 | IELTS |
-| 辅导模式 | IELTS Writing |
+| 学习目标 | scored |
+| 辅导模式 | Scored Writing |
 | 辅导风格 | Teaching（详细讲解） |
 | 回复语言 | Chinese（母语） |
-| 目标分数段 | 6.5 |
+| 目标估计值 | 6.5 |
 | 当前水平 | 高中生水平 |
 
 ### 2. 重新加载并开始写作
@@ -432,7 +434,7 @@ Response language after coaching?      → native
 用户输入：`"ok, It's work well."`
 
 ```
-╭─ 📚 English · IELTS Writing ──────────────
+╭─ 📚 English · Scored Writing ─────────────
 │ Band 估分：  这句较短，但有语法错误
 │ 亮点：       用了副词 "well" 修饰动词 ✓
 │ 扣分项：     "It's work well" — it's = it is，后面不能接动词原形
@@ -447,7 +449,7 @@ Response language after coaching?      → native
 **写日语**时会触发相同的结构，但使用日语专属标题：
 
 ```
-╭─ 📚 Japanese · IELTS Writing ─────────────
+╭─ 📚 Japanese · Scored Writing ────────────
 │ ...
 ╰─────────────────────────────────────────────
 ```
