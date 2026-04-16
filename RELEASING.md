@@ -53,6 +53,26 @@ Instead, Codex updates are distributed through the same canonical release artifa
 
 That keeps the update lane stable even if Codex distribution mechanics change later.
 
+## Codex marketplace source
+
+This repo now includes a repo-scoped Codex marketplace manifest at:
+
+- `.agents/plugins/marketplace.json`
+
+That means users can register the repo directly with:
+
+```bash
+codex marketplace add leeguooooo/prompt-language-coach
+```
+
+Or, for a local checkout:
+
+```bash
+codex marketplace add .
+```
+
+After restarting Codex, the plugin should appear in the plugin directory under the marketplace name `Prompt Language Coach`.
+
 ## Local dry run
 
 Before triggering a release, you can run the same verification locally:

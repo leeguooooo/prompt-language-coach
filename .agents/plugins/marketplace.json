@@ -1,0 +1,20 @@
+{
+  "name": "prompt-language-coach",
+  "interface": {
+    "displayName": "Prompt Language Coach"
+  },
+  "plugins": [
+    {
+      "name": "prompt-language-coach",
+      "source": {
+        "source": "local",
+        "path": "./"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Education"
+    }
+  ]
+}

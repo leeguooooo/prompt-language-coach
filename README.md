@@ -25,8 +25,8 @@ Every message you send is coached **before** the real model answer:
 The coaching core supports:
 
 - `everyday`
-- `ielts-writing`
-- `ielts-speaking`
+- `scored-writing`
+- `scored-speaking`
 - `review`
 
 Works for **any language pair**: Chinese → English, Japanese → English, Spanish → French, etc.
@@ -90,9 +90,19 @@ Every message you send gets coached **before** the assistant answers. The coachi
 
 **Prerequisites:** `python3`
 
-1. Install the plugin from this repository into your Codex plugin surface.
-2. Run `/language-coach setup`
-3. The setup flow writes `~/.codex/language-coach.json` and installs the Codex `UserPromptSubmit` hook.
+Add the repository as a Codex marketplace source:
+
+```bash
+codex marketplace add leeguooooo/prompt-language-coach
+```
+
+Then:
+
+1. Restart Codex
+2. Open the plugin directory and install **Prompt Language Coach**
+3. Run `/language-coach setup`
+
+The setup flow writes `~/.codex/language-coach.json` and installs the Codex `UserPromptSubmit` hook automatically.
 
 ### Claude Code
 
@@ -145,7 +155,7 @@ Run `/language-coach:language-coach setup` and answer the onboarding questions:
 
 If you choose `ielts`, the setup flow also stores:
 
-1. Active IELTS mode: `ielts-writing` or `ielts-speaking`
+1. Active scored mode: `scored-writing` or `scored-speaking`
 2. IELTS focus: `writing`, `speaking`, or `both`
 3. Target band
 4. Current level
@@ -168,7 +178,7 @@ On **Claude Code**, use `/language-coach:language-coach ...`.
 | `/language-coach style <mode>` | Switch coaching style: `teaching`, `concise`, `translate` |
 | `/language-coach response <mode>` | Switch response language: `native` or `target` |
 | `/language-coach goal <mode>` | Switch learning goal: `everyday` or `ielts` |
-| `/language-coach mode <mode>` | Switch coaching mode: `everyday`, `ielts-writing`, `ielts-speaking`, or `review` |
+| `/language-coach mode <mode>` | Switch coaching mode: `everyday`, `scored-writing`, `scored-speaking`, or `review` |
 | `/language-coach focus <mode>` | Set IELTS focus: `writing`, `speaking`, or `both` |
 | `/language-coach band <score>` | Store your IELTS target band |
 | `/language-coach level <text>` | Store your current level |
@@ -185,15 +195,15 @@ On **Claude Code**, use `/language-coach:language-coach ...`.
 | Mode | What you get |
 |---|---|
 | `everyday` | Compact coaching with `Your original`, `Corrected`, `More natural`, and `1 key takeaway` |
-| `ielts-writing` | IELTS-oriented writing feedback with band range, score-lowering issues, rewrite, reusable pattern, and drill |
-| `ielts-speaking` | Spoken-naturalness feedback from text with fluency, lexical, grammar, pattern, and drill guidance |
+| `scored-writing` | Score-oriented writing feedback using the target language's best-fit scale, with estimate, problems, rewrite, reusable pattern, and drill |
+| `scored-speaking` | Score-oriented spoken-naturalness feedback from text with fluency, lexical, grammar, pattern, and drill guidance |
 | `review` | Compact review summary of recurring mistakes, reusable patterns, and the next drill |
 
 ## Progress tracking
 
-Band estimates are automatically recorded to the platform-specific progress file (`~/.codex/language-progress.json`, `~/.claude/language-progress.json`, or `~/.cursor/language-progress.json`) whenever:
+Estimates are automatically recorded to the shared progress file (`~/.prompt-language-coach/language-progress.json`) and mirrored to the legacy platform-specific files whenever:
 
-1. The active mode is `ielts-writing` or `ielts-speaking`
+1. The active mode is `scored-writing` or `scored-speaking`
 2. The user wrote in a target language (not purely in the native language)
 3. Claude gives a numeric band estimate in the coaching box
 
@@ -236,7 +246,7 @@ The normalized JSON schema:
   "nativeLanguage": "Chinese",
   "targetLanguage": "English",
   "goal": "ielts",
-  "mode": "ielts-writing",
+  "mode": "scored-writing",
   "style": "teaching",
   "responseLanguage": "target",
   "enabled": true,
@@ -252,7 +262,7 @@ The normalized JSON schema:
 | `nativeLanguage` | any language name | `"Chinese"` | Your native language |
 | `targetLanguage` | any language name | `"English"` | Language you are learning |
 | `goal` | `everyday` / `ielts` | `"everyday"` | Top-level learning goal |
-| `mode` | `everyday` / `ielts-writing` / `ielts-speaking` / `review` | `"everyday"` | Active coaching mode |
+| `mode` | `everyday` / `scored-writing` / `scored-speaking` / `review` | `"everyday"` | Active coaching mode |
 | `style` | `teaching` / `concise` / `translate` | `"teaching"` | Output verbosity |
 | `responseLanguage` | `native` / `target` | `"native"` | Language used after coaching |
 | `enabled` | `true` / `false` | `true` | Toggle on/off without losing config |
@@ -307,7 +317,11 @@ Most language apps are separate tools that pull you away from your work. This pl
 
 ### Codex
 
-Clone the repo and place it in your Codex local plugin path so Codex can read `.codex-plugin/plugin.json`.
+You can also use a local checkout as a Codex marketplace source:
+
+```bash
+codex marketplace add .
+```
 
 Then run:
 
@@ -315,7 +329,7 @@ Then run:
 /language-coach setup
 ```
 
-The setup flow writes `~/.codex/language-coach.json` and installs the Codex `UserPromptSubmit` hook in `~/.codex/hooks.json`.
+After restarting Codex, install the plugin from the plugin directory. The setup flow writes `~/.codex/language-coach.json` and installs the Codex `UserPromptSubmit` hook in `~/.codex/hooks.json`.
 
 ### Claude Code
 
@@ -385,7 +399,7 @@ The wizard asks one question at a time:
 What is your native language?          → Chinese
 What language are you learning?        → english, japanese
 What is your main goal?                → ielts
-Which IELTS mode?                      → ielts-writing and ielts-speaking
+Which scored mode?                     → scored-writing and scored-speaking
 Target band?                           → 6.5
 Current level?                         → 高中生水平
 Coaching style?                        → teaching
@@ -442,7 +456,7 @@ Switch mode anytime:
 
 ```
 /language-coach:language-coach mode everyday       # back to everyday coaching
-/language-coach:language-coach mode ielts-writing  # back to IELTS
+/language-coach:language-coach mode scored-writing  # back to scored writing
 /language-coach:language-coach status              # show current config
 ```
 
@@ -450,7 +464,7 @@ Switch mode anytime:
 
 ## Related
 
-- [Claude Status Bar](https://github.com/leeguooooo/claude-code-usage-bar) — shows your IELTS band progress (`📚 EN:6.0↑`) alongside Claude rate-limit and context usage in the status bar. Reads `~/.claude/language-progress.json` written by this plugin.
+- [Claude Status Bar](https://github.com/leeguooooo/claude-code-usage-bar) — shows your current language estimate progress (`📚 EN:6.0↑`) alongside Claude rate-limit and context usage in the status bar. Reads the mirrored progress file written by this plugin.
 - [Claude Code documentation](https://docs.anthropic.com/en/docs/claude-code)
 - [Claude Code hooks guide](https://docs.anthropic.com/en/docs/claude-code/hooks)
 - [Claude Code plugin marketplace](https://docs.anthropic.com/en/docs/claude-code/plugins)
