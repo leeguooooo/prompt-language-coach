@@ -94,15 +94,23 @@ Prompt Language Coach 原生支持 **Codex**、**Claude Code** 和 **Cursor**。
 
 ```bash
 codex marketplace add leeguooooo/prompt-language-coach
+git -C ~/.codex/.tmp/marketplaces/prompt-language-coach pull --ff-only
 ```
 
-注意：`codex marketplace add ...` 只是在 Codex 里添加 marketplace 源，本身不会把插件装进当前可用插件集合。
+然后把 marketplace bundle 安装进 Codex 当前真正会加载的插件目录：
 
-然后：
+```bash
+git -C ~/.codex/.tmp/marketplaces/prompt-language-coach pull --ff-only
+python3 ~/.codex/.tmp/marketplaces/prompt-language-coach/plugins/prompt-language-coach/scripts/install_codex_plugin.py
+```
 
-1. 重启 Codex
-2. 打开插件目录并安装 **Prompt Language Coach**
-3. 运行 `/language-coach setup` 或 `/lang setup`
+接着重启 Codex，再运行：
+
+```text
+/language-coach setup
+# 或
+/lang setup
+```
 
 设置流程会写入 `~/.codex/language-coach.json`，并自动安装 Codex 的 `UserPromptSubmit` hook。
 
@@ -335,7 +343,13 @@ codex marketplace add .
 /language-coach setup
 ```
 
-重启 Codex 后，从插件目录里安装这个插件。设置流程会写入 `~/.codex/language-coach.json`，并在 `~/.codex/hooks.json` 中安装 Codex 的 `UserPromptSubmit` hook。
+重启 Codex 后，用下面这条命令把插件安装到当前生效的插件目录：
+
+```bash
+python3 ~/.codex/.tmp/marketplaces/prompt-language-coach/plugins/prompt-language-coach/scripts/install_codex_plugin.py
+```
+
+然后运行 `/language-coach setup`。设置流程会写入 `~/.codex/language-coach.json`，并在 `~/.codex/hooks.json` 中安装 Codex 的 `UserPromptSubmit` hook。
 
 ### Claude Code
 

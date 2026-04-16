@@ -94,15 +94,23 @@ Add the repository as a Codex marketplace source:
 
 ```bash
 codex marketplace add leeguooooo/prompt-language-coach
+git -C ~/.codex/.tmp/marketplaces/prompt-language-coach pull --ff-only
 ```
 
-Important: `codex marketplace add ...` only adds the marketplace source. It does not install the plugin into the active Codex plugin set by itself.
+Then install the marketplace bundle into Codex's active plugin directory:
 
-Then:
+```bash
+git -C ~/.codex/.tmp/marketplaces/prompt-language-coach pull --ff-only
+python3 ~/.codex/.tmp/marketplaces/prompt-language-coach/plugins/prompt-language-coach/scripts/install_codex_plugin.py
+```
 
-1. Restart Codex
-2. Open the plugin directory and install **Prompt Language Coach**
-3. Run `/language-coach setup` or `/lang setup`
+Then restart Codex and run:
+
+```text
+/language-coach setup
+# or
+/lang setup
+```
 
 The setup flow writes `~/.codex/language-coach.json` and installs the Codex `UserPromptSubmit` hook automatically.
 
@@ -335,7 +343,13 @@ Then run:
 /language-coach setup
 ```
 
-After restarting Codex, install the plugin from the plugin directory. The setup flow writes `~/.codex/language-coach.json` and installs the Codex `UserPromptSubmit` hook in `~/.codex/hooks.json`.
+After restarting Codex, install the plugin into the active plugin directory with:
+
+```bash
+python3 ~/.codex/.tmp/marketplaces/prompt-language-coach/plugins/prompt-language-coach/scripts/install_codex_plugin.py
+```
+
+Then run `/language-coach setup`. The setup flow writes `~/.codex/language-coach.json` and installs the Codex `UserPromptSubmit` hook in `~/.codex/hooks.json`.
 
 ### Claude Code
 
