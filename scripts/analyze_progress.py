@@ -118,7 +118,7 @@ def analyze_language(language: str, entry: dict[str, Any]) -> dict[str, Any]:
         "scale": scale.key,
         "unit_label": scale.unit_label,
         "sessions": sessions,
-        "current_band": last_band,
+        "current_band": last_band_value if scale.key == "ielts" else last_band,
         "first_band": first_band_value,
         "best_band": best_band,
         "total_gain": round(last_band_value - first_band_value, 2),
