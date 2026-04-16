@@ -1,0 +1,14 @@
+{
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/bin/sh -lc 'if [ -x /ABSOLUTE/PATH/TO/PYTHON ]; then exec /ABSOLUTE/PATH/TO/PYTHON /ABSOLUTE/PATH/TO/platforms/codex/hook_entry.py; fi if command -v python3 >/dev/null 2>&1; then exec python3 /ABSOLUTE/PATH/TO/platforms/codex/hook_entry.py; fi exit 0'"
+          }
+        ]
+      }
+    ]
+  }
+}

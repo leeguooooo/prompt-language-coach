@@ -47,7 +47,7 @@ jobs:
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add .claude-plugin/plugin.json .cursor-plugin/plugin.json .codex-plugin/plugin.json CHANGELOG.md
+          git add .claude-plugin/plugin.json .cursor-plugin/plugin.json .codex-plugin/plugin.json plugins/prompt-language-coach/.codex-plugin/plugin.json CHANGELOG.md
           git commit -m "chore: release v${{ github.event.inputs.version }}" || echo "Nothing to commit"
           git tag "v${{ github.event.inputs.version }}"
           git push origin HEAD --tags

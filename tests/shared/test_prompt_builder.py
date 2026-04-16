@@ -104,6 +104,7 @@ class PromptBuilderTests(unittest.TestCase):
         self.assertIn("│ ", prompt)
         self.assertIn("╰─────────────────────────────────────", prompt)
         self.assertNotIn("Band estimate", prompt)
+        self.assertNotIn("JLPT estimate", prompt)
         self.assertIn(MIXED_LANGUAGE_GUIDANCE, prompt)
         self.assertIn("Deliver all coaching feedback in Chinese.", prompt)
         self.assertNotIn("Detect which target language the user wrote in", prompt)
@@ -114,7 +115,8 @@ class PromptBuilderTests(unittest.TestCase):
         )
         prompt = build_prompt(config, repo_root="/tmp/repo")
 
-        self.assertIn("Band estimate", prompt)
+        self.assertIn("- Estimate", prompt)
+        self.assertIn("Scoring scale: IELTS.", prompt)
         self.assertIn("Target estimate: 7.0.", prompt)
         self.assertIn("Reusable pattern", prompt)
         self.assertIn("Mini drill", prompt)
@@ -131,6 +133,7 @@ class PromptBuilderTests(unittest.TestCase):
         prompt = build_prompt(config)
 
         self.assertIn("Do not claim to score pronunciation from text alone", prompt)
+        self.assertIn("Scoring scale: IELTS.", prompt)
         self.assertIn(MIXED_LANGUAGE_GUIDANCE, prompt)
         self.assertIn("╭─ 📚 Scored Speaking Coaching ─", prompt)
 
@@ -145,6 +148,7 @@ class PromptBuilderTests(unittest.TestCase):
         prompt = build_prompt(config)
 
         self.assertIn("Estimate using JLPT levels (N5, N4, N3, N2, N1)", prompt)
+        self.assertIn("Scoring scale: JLPT.", prompt)
         self.assertIn("Target estimate: N3.", prompt)
         self.assertIn("Default to N5 on a first scored sample", prompt)
 

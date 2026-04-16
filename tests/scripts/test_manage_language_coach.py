@@ -396,6 +396,8 @@ class ManageLanguageCoachTests(unittest.TestCase):
             self.assertTrue(shared_path.exists())
             shared = json.loads(shared_path.read_text(encoding="utf-8"))
             self.assertEqual(shared["English"]["currentEstimate"], "6.0")
+            self.assertEqual(shared["English"]["estimates"][-1]["estimate"], "6.0")
+            self.assertNotIn("band", shared["English"]["estimates"][-1])
 
             for legacy_path in (
                 home / ".codex" / "language-progress.json",
@@ -405,6 +407,45 @@ class ManageLanguageCoachTests(unittest.TestCase):
                 self.assertTrue(legacy_path.exists())
                 mirrored = json.loads(legacy_path.read_text(encoding="utf-8"))
                 self.assertEqual(mirrored["English"]["currentEstimate"], "6.0")
+
+    def test_progress_loader_migrates_legacy_band_keys(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            home = Path(tmp)
+            legacy_path = home / ".claude" / "language-progress.json"
+            legacy_path.parent.mkdir(parents=True, exist_ok=True)
+            legacy_path.write_text(
+                json.dumps(
+                    {
+                        "English": {
+                            "currentBand": "5.5",
+                            "estimates": [
+                                {"date": "2026-04-01", "band": "5.5"},
+                            ],
+                            "scale": "ielts",
+                        }
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            result = subprocess.run(
+                [
+                    "python3",
+                    "scripts/manage_language_coach.py",
+                    "--platform",
+                    "claude",
+                    "progress",
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+                env={"HOME": str(home)},
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            migrated = json.loads((home / ".prompt-language-coach" / "language-progress.json").read_text(encoding="utf-8"))
+            self.assertEqual(migrated["English"]["currentEstimate"], "5.5")
+            self.assertEqual(migrated["English"]["estimates"][0]["estimate"], "5.5")
 
 
 if __name__ == "__main__":

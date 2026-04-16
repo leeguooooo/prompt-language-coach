@@ -70,7 +70,7 @@ Every message you send gets coached **before** the assistant answers. The coachi
 **The assistant coaches:**
 ```
 ╭─ 📚 English · Scored Writing ─────────────
-│ Band 估分：  5.0–5.5
+│ Estimate：   5.0–5.5
 │ 亮点：       主题明确，有因果逻辑意识
 │ 扣分项：     "many reason" → "many reasons"；论点空洞，缺乏具体论据
 │ 高分改写：   "Environmental protection is critical, as unchecked
@@ -435,7 +435,7 @@ User types: `"ok, It's work well."`
 
 ```
 ╭─ 📚 English · Scored Writing ─────────────
-│ Band 估分：  这句较短，但有语法错误
+│ Estimate：   这句较短，但有语法错误
 │ 亮点：       用了副词 "well" 修饰动词 ✓
 │ 扣分项：     "It's work well" — it's = it is，后面不能接动词原形
 │ 高分改写：   "It works well." / "It's working well."

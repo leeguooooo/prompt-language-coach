@@ -8,7 +8,7 @@
       "name": "prompt-language-coach",
       "source": {
         "source": "local",
-        "path": "./"
+        "path": "./plugins/prompt-language-coach"
       },
       "policy": {
         "installation": "AVAILABLE",
