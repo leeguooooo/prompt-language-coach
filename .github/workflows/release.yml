@@ -12,6 +12,8 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+    env:
+      PLUGINS_REPO_TOKEN_PRESENT: ${{ secrets.PLUGINS_REPO_TOKEN }}
 
     steps:
       - uses: actions/checkout@v4
@@ -69,7 +71,7 @@ jobs:
             - `.cursor-plugin/plugin.json`
 
       - name: Notify plugins repo to sync marketplace
-        if: ${{ secrets.PLUGINS_REPO_TOKEN != '' }}
+        if: ${{ env.PLUGINS_REPO_TOKEN_PRESENT != '' }}
         uses: peter-evans/repository-dispatch@v3
         with:
           token: ${{ secrets.PLUGINS_REPO_TOKEN }}
