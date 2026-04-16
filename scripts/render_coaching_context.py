@@ -12,19 +12,30 @@ if str(REPO_ROOT) not in sys.path:
 
 from shared.config.io import load_config
 from shared.prompts.build_prompt import build_prompt
-from scripts.manage_language_coach import ensure_progress_snapshot, resolve_progress_path
+from scripts.manage_language_coach import (
+    ensure_progress_snapshot,
+    resolve_effective_config_path,
+    resolve_progress_path,
+)
 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("--platform", choices={"claude", "codex", "cursor"}, required=True)
-    parser.add_argument("--config", required=True)
+    parser.add_argument("--config")
     return parser.parse_args()
 
 
 def main() -> int:
     args = parse_args()
-    config = load_config(Path(args.config).expanduser())
+    config_path = Path(args.config).expanduser() if args.config else None
+    if config_path is None or not config_path.exists():
+        effective_path = resolve_effective_config_path(args.platform)
+        if effective_path is None:
+            return 0
+        config_path = effective_path
+
+    config = load_config(config_path)
     if not config["enabled"]:
         return 0
 

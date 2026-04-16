@@ -131,7 +131,7 @@ Then run the setup command in Cursor's AI panel:
 /language-coach setup
 ```
 
-The setup wizard asks your native language, target language, goal, style, and response language — same as Claude Code — and stores config at `~/.cursor/language-coach.json`.
+The setup wizard asks your native language, target language, goal, style, and response language — same as Claude Code. The resulting config is stored in the shared file `~/.prompt-language-coach/language-coach.json` and mirrored to `~/.cursor/language-coach.json`.
 
 ---
 
@@ -141,7 +141,7 @@ The setup wizard asks your native language, target language, goal, style, and re
 
 Run `/language-coach setup` and answer the onboarding questions.
 
-On Codex, the setup flow also installs the automatic `UserPromptSubmit` hook so coaching starts on every prompt right away. Your Codex config is stored at `~/.codex/language-coach.json`.
+On Codex, the setup flow also installs the automatic `UserPromptSubmit` hook so coaching starts on every prompt right away. Config is stored in the shared file `~/.prompt-language-coach/language-coach.json` and mirrored to `~/.codex/language-coach.json`.
 
 ### Claude Code setup
 
@@ -235,11 +235,12 @@ If you also use [Claude Status Bar](https://github.com/leeguooooo/claude-code-us
 
 ## Configuration
 
-Config is stored in the platform-specific config file:
+Config is stored in the shared config file and mirrored to platform-specific paths:
 
-- Codex: `~/.codex/language-coach.json`
-- Claude Code: `~/.claude/language-coach.json`
-- Cursor: `~/.cursor/language-coach.json`
+- Shared: `~/.prompt-language-coach/language-coach.json`
+- Codex mirror: `~/.codex/language-coach.json`
+- Claude Code mirror: `~/.claude/language-coach.json`
+- Cursor mirror: `~/.cursor/language-coach.json`
 
 The normalized JSON schema:
 
@@ -295,7 +296,7 @@ Codex, Claude Code, and Cursor all render coaching through the shared Python cor
 All integrations exit silently — no coaching, no crash — when:
 
 - `python3` is not installed
-- The platform config file does not exist yet (`~/.codex/language-coach.json`, `~/.claude/language-coach.json`, or `~/.cursor/language-coach.json`)
+- No shared or mirrored config file exists yet
 - `enabled` is `false`
 
 ---
@@ -354,11 +355,11 @@ Clone the repo and add the hook to your `~/.claude/settings.json`:
 }
 ```
 
-Then create `~/.claude/language-coach.json` with your config.
+Then create `~/.prompt-language-coach/language-coach.json` with your config. The platform mirrors are optional because the runtime falls back to the shared file.
 
 ### Cursor
 
-Clone the repo. Cursor picks up the plugin automatically from `.cursor-plugin/plugin.json` if the repo is placed in `~/.cursor/plugins/local/language-coach`. The hook reads config from `~/.cursor/language-coach.json`.
+Clone the repo. Cursor picks up the plugin automatically from `.cursor-plugin/plugin.json` if the repo is placed in `~/.cursor/plugins/local/language-coach`. The hook first looks for `~/.cursor/language-coach.json`, then falls back to the shared file.
 
 Run setup from the Cursor AI panel:
 
@@ -408,7 +409,7 @@ Coaching style?                        → teaching
 Response language after coaching?      → native
 ```
 
-Final config stored at `~/.claude/language-coach.json`:
+Final config stored at `~/.prompt-language-coach/language-coach.json` and mirrored to the platform paths:
 
 | Field | Value |
 |---|---|

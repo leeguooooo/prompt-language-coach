@@ -196,6 +196,24 @@ class CodexHookEntryTests(unittest.TestCase):
 
             self.assertEqual(result, 0)
 
+    def test_hook_entry_falls_back_to_existing_claude_config(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            home = Path(tmp)
+            config_path = home / ".claude" / "language-coach.json"
+            config_path.parent.mkdir(parents=True, exist_ok=True)
+            config_path.write_text("{}", encoding="utf-8")
+
+            with (
+                mock.patch("platforms.codex.hook_entry.Path.home", return_value=home),
+                mock.patch("platforms.codex.hook_entry.subprocess.call", return_value=0) as call_mock,
+            ):
+                result = run_hook_entry()
+
+            self.assertEqual(result, 0)
+            command = call_mock.call_args.args[0]
+            self.assertIn("--config", command)
+            self.assertEqual(command[-1], str(config_path))
+
 
 if __name__ == "__main__":
     unittest.main()

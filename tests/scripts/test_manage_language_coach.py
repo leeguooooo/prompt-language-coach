@@ -81,6 +81,36 @@ class ManageLanguageCoachTests(unittest.TestCase):
             updated = json.loads(config_path.read_text(encoding="utf-8"))
             self.assertEqual(updated["targetLanguage"], "Japanese")
 
+    def test_claude_setup_like_update_mirrors_config_to_all_platform_paths(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            home = Path(tmp)
+
+            result = subprocess.run(
+                [
+                    "python3",
+                    "scripts/manage_language_coach.py",
+                    "--platform",
+                    "claude",
+                    "target",
+                    "Japanese",
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+                env={"HOME": str(home)},
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            for config_path in (
+                home / ".claude" / "language-coach.json",
+                home / ".codex" / "language-coach.json",
+                home / ".cursor" / "language-coach.json",
+                home / ".prompt-language-coach" / "language-coach.json",
+            ):
+                self.assertTrue(config_path.exists(), str(config_path))
+                updated = json.loads(config_path.read_text(encoding="utf-8"))
+                self.assertEqual(updated["targetLanguage"], "Japanese")
+
     def test_codex_install_hook_command_writes_hooks_json(self):
         with tempfile.TemporaryDirectory() as tmp:
             home = Path(tmp)

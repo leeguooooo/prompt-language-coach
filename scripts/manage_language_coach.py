@@ -47,6 +47,35 @@ def resolve_default_config(platform: str) -> Path:
     return home / ".claude" / "language-coach.json"
 
 
+def resolve_shared_config_path() -> Path:
+    return Path.home() / ".prompt-language-coach" / "language-coach.json"
+
+
+def resolve_all_config_paths() -> list[Path]:
+    return [
+        resolve_shared_config_path(),
+        Path.home() / ".claude" / "language-coach.json",
+        Path.home() / ".codex" / "language-coach.json",
+        Path.home() / ".cursor" / "language-coach.json",
+    ]
+
+
+def resolve_effective_config_path(platform: str) -> Path | None:
+    preferred = [
+        resolve_default_config(platform),
+        resolve_shared_config_path(),
+    ]
+    fallbacks = [
+        path
+        for path in resolve_all_config_paths()
+        if path not in preferred
+    ]
+    for candidate in preferred + fallbacks:
+        if candidate.exists():
+            return candidate
+    return None
+
+
 def resolve_progress_path(platform: str) -> Path:
     del platform
     return resolve_shared_progress_path()
@@ -166,6 +195,12 @@ def ensure_progress_snapshot(platform: str) -> dict[str, Any]:
     if data:
         save_progress_data(platform, data)
     return data
+
+
+def save_config_data(platform: str, config: dict[str, Any]) -> None:
+    del platform
+    for path in resolve_all_config_paths():
+        save_config(path, config)
 
 
 def cmd_record_estimate(args: argparse.Namespace) -> int:
@@ -567,8 +602,13 @@ def main() -> int:
         print("installed" if codex_hook_installed(resolve_codex_hooks_path()) else "not installed")
         return 0
 
-    path = Path(args.config).expanduser() if args.config else resolve_default_config(args.platform)
-    configured = path.exists()
+    if args.config:
+        path = Path(args.config).expanduser()
+        configured = path.exists()
+    else:
+        effective_path = resolve_effective_config_path(args.platform)
+        path = effective_path or resolve_default_config(args.platform)
+        configured = effective_path is not None
     config = load_config(path)
 
     if args.command == "status":
@@ -576,7 +616,10 @@ def main() -> int:
         return 0
 
     message = apply_command(config, args, path)
-    save_config(path, config)
+    if args.config:
+        save_config(path, config)
+    else:
+        save_config_data(args.platform, config)
     sync_claude_md(config, args.platform)
     if message is not None:
         print(message)

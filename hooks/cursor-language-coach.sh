@@ -9,16 +9,10 @@ else
   REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 fi
 
-CONFIG="$HOME/.cursor/language-coach.json"
-
 if ! command -v python3 >/dev/null 2>&1; then
-  exit 0
-fi
-
-if [ ! -f "$CONFIG" ]; then
   exit 0
 fi
 
 python3 "$REPO_ROOT/scripts/render_coaching_context.py" \
   --platform cursor \
-  --config "$CONFIG"
+  --config "$HOME/.cursor/language-coach.json"
