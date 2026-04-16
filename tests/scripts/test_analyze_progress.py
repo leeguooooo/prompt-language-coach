@@ -218,15 +218,16 @@ class TestCLI:
         import io
 
         captured = io.StringIO()
-        patch_target = "scripts.analyze_progress.resolve_progress_path"
+        path_patch_target = "scripts.analyze_progress.resolve_progress_path"
+        load_patch_target = "scripts.analyze_progress.load_progress_data"
+
+        progress_data = {}
+        if progress_path is not None and progress_path.exists():
+            progress_data = json.loads(progress_path.read_text(encoding="utf-8"))
 
         with mock.patch("sys.argv", ["analyze_progress.py"] + argv):
-            if progress_path is not None:
-                with mock.patch(patch_target, return_value=progress_path):
-                    with mock.patch("sys.stdout", captured):
-                        rc = analyze_main()
-            else:
-                with mock.patch(patch_target, return_value=progress_path or Path("/nonexistent.json")):
+            with mock.patch(path_patch_target, return_value=progress_path or Path("/nonexistent.json")):
+                with mock.patch(load_patch_target, return_value=progress_data):
                     with mock.patch("sys.stdout", captured):
                         rc = analyze_main()
         return rc, captured.getvalue()
