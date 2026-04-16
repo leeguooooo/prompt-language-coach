@@ -7,6 +7,18 @@ from typing import Any, Optional
 from shared.pedagogy.modes import guidance_for_mode, sections_for_mode
 
 
+def _scoring_guidance(target_language: str, mode: str) -> list[str]:
+    normalized = target_language.strip().casefold()
+    if normalized == "japanese":
+        return [
+            "Estimate using JLPT levels (N5, N4, N3, N2, N1).",
+            "Default to N5 on a first scored sample.",
+        ]
+    if mode in {"ielts-writing", "ielts-speaking"}:
+        return ["Do not start above 5.5 on a first scored sample."]
+    return []
+
+
 def _progress_note(progress_path: str) -> Optional[str]:
     """Return a brief progress note string, or None if no data is available."""
     path = Path(progress_path)
@@ -115,6 +127,10 @@ def _target_summary(
         lines.append(f"  Response language: {target['responseLanguage']}.")
     lines.append("  Coaching guidance:")
     lines.extend(f"  - {line}" for line in guidance_for_mode(target["mode"]))
+    lines.extend(
+        f"  - {line}"
+        for line in _scoring_guidance(target["targetLanguage"], target["mode"])
+    )
     lines.append("  Feedback sections:")
     lines.extend(f"  - {section}" for section in sections_for_mode(target["mode"]))
     lines.append("  Box framing:")
@@ -184,11 +200,15 @@ def build_prompt(
                 base.append(f"Current level: {config['currentLevel']}.")
 
         guidance_text = "\n".join(f"- {line}" for line in guidance_for_mode(mode))
+        scoring_text = "\n".join(
+            f"- {line}" for line in _scoring_guidance(config["targetLanguage"], mode)
+        )
         section_text = "\n".join(f"- {section}" for section in sections_for_mode(mode))
         base.extend(
             [
                 "Coaching guidance:",
                 guidance_text,
+                *([scoring_text] if scoring_text else []),
                 "Feedback sections to include before the actual answer:",
                 section_text,
                 *_box_instruction(mode),

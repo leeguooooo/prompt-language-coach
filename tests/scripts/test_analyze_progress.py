@@ -153,6 +153,20 @@ class TestAnalyzeLanguage:
         assert result["sessions"] == 1  # only the valid one counts
         assert result["current_band"] == 6.5
 
+    def test_japanese_jlpt_levels_are_ranked_and_reported_without_numeric_bands(self):
+        entry = {
+            "scale": "jlpt",
+            "estimates": [
+                {"date": "2026-01-01", "band": "N5"},
+                {"date": "2026-01-04", "band": "N4"},
+            ],
+        }
+        result = analyze_language("Japanese", entry)
+        assert result["sessions"] == 2
+        assert result["current_band"] == "N4"
+        assert result["total_gain"] == pytest.approx(1.0, abs=1e-9)
+        assert result["scale"] == "jlpt"
+
 
 # ---------------------------------------------------------------------------
 # _format_report
@@ -178,6 +192,20 @@ class TestFormatReport:
         analysis = analyze_language("English", entry)
         report = _format_report([analysis])
         assert "History" in report
+
+    def test_report_uses_level_wording_for_jlpt(self):
+        entry = {
+            "scale": "jlpt",
+            "estimates": [
+                {"date": "2026-01-01", "band": "N5"},
+                {"date": "2026-01-04", "band": "N4"},
+            ],
+        }
+        analysis = analyze_language("Japanese", entry)
+        report = _format_report([analysis])
+        assert "Japanese" in report
+        assert "current: N4" in report
+        assert "level/week" in report
 
 
 # ---------------------------------------------------------------------------

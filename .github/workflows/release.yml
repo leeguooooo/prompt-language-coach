@@ -15,6 +15,25 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Run verification
+        run: |
+          python3 -m unittest \
+            tests.shared.test_config_io \
+            tests.shared.test_prompt_builder \
+            tests.hooks.test_claude_hook_output \
+            tests.hooks.test_codex_hook_install \
+            tests.scripts.test_analyze_progress \
+            tests.scripts.test_bump_version \
+            tests.scripts.test_manage_language_coach \
+            -v
 
       - name: Bump version in all plugin manifests
         run: python3 scripts/bump_version.py "${{ github.event.inputs.version }}"
@@ -28,7 +47,26 @@ jobs:
           git tag "v${{ github.event.inputs.version }}"
           git push origin HEAD --tags
 
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ github.event.inputs.version }}
+          generate_release_notes: true
+          body: |
+            Prompt Language Coach v${{ github.event.inputs.version }}
+
+            This release bumps the shipped plugin version for:
+            - Codex
+            - Claude Code
+            - Cursor
+
+            Source of truth:
+            - `.codex-plugin/plugin.json`
+            - `.claude-plugin/plugin.json`
+            - `.cursor-plugin/plugin.json`
+
       - name: Notify plugins repo to sync marketplace
+        if: ${{ secrets.PLUGINS_REPO_TOKEN != '' }}
         uses: peter-evans/repository-dispatch@v3
         with:
           token: ${{ secrets.PLUGINS_REPO_TOKEN }}

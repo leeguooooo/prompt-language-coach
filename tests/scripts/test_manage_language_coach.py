@@ -172,7 +172,7 @@ class ManageLanguageCoachTests(unittest.TestCase):
             self.assertEqual(updated["mode"], "ielts-writing")
             self.assertEqual(updated["goal"], "ielts")
 
-    def test_target_add_reloads_current_config_and_inherits_goal_mode(self) -> None:
+    def test_target_add_reloads_current_config_but_starts_new_language_conservatively(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             config_path = Path(tmp) / "language-coach.json"
             config_path.write_text(
@@ -240,11 +240,48 @@ class ManageLanguageCoachTests(unittest.TestCase):
                 for target in saved_config["targets"]
                 if target["targetLanguage"] == "Japanese"
             )
-            self.assertEqual(japanese_target["goal"], "ielts")
-            self.assertEqual(japanese_target["mode"], "ielts-writing")
-            self.assertEqual(japanese_target["ieltsFocus"], "writing")
-            self.assertEqual(japanese_target["targetBand"], "7.0")
-            self.assertEqual(japanese_target["currentLevel"], "6.0")
+            self.assertEqual(japanese_target["goal"], "everyday")
+            self.assertEqual(japanese_target["mode"], "everyday")
+            self.assertEqual(japanese_target["ieltsFocus"], "both")
+            self.assertEqual(japanese_target["targetBand"], "")
+            self.assertEqual(japanese_target["currentLevel"], "")
+            self.assertEqual(japanese_target["responseLanguage"], "target")
+
+    def test_record_band_merges_progress_across_platforms_into_shared_file(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            home = Path(tmp)
+            shared_path = home / ".prompt-language-coach" / "language-progress.json"
+
+            for platform, band in (("codex", "5.0"), ("claude", "5.5"), ("cursor", "6.0")):
+                result = subprocess.run(
+                    [
+                        "python3",
+                        "scripts/manage_language_coach.py",
+                        "--platform",
+                        platform,
+                        "record-band",
+                        "English",
+                        band,
+                    ],
+                    check=False,
+                    capture_output=True,
+                    text=True,
+                    env={"HOME": str(home)},
+                )
+                self.assertEqual(result.returncode, 0, result.stderr)
+
+            self.assertTrue(shared_path.exists())
+            shared = json.loads(shared_path.read_text(encoding="utf-8"))
+            self.assertEqual(shared["English"]["currentBand"], "6.0")
+
+            for legacy_path in (
+                home / ".codex" / "language-progress.json",
+                home / ".claude" / "language-progress.json",
+                home / ".cursor" / "language-progress.json",
+            ):
+                self.assertTrue(legacy_path.exists())
+                mirrored = json.loads(legacy_path.read_text(encoding="utf-8"))
+                self.assertEqual(mirrored["English"]["currentBand"], "6.0")
 
 
 if __name__ == "__main__":

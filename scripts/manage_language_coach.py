@@ -12,7 +12,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from shared.config.io import load_config, save_config
+from shared.config.io import load_config, load_defaults, save_config
 from shared.config.schema import (
     ALLOWED_GOALS,
     ALLOWED_IELTS_FOCUS,
@@ -29,13 +29,6 @@ from platforms.codex.install_hooks import (
     remove as remove_codex_hook,
 )
 
-TARGET_INHERIT_KEYS = (
-    "goal",
-    "mode",
-    "ieltsFocus",
-    "targetBand",
-    "currentLevel",
-)
 TARGET_FALLBACK_KEYS = (
     "style",
     "responseLanguage",
@@ -58,6 +51,19 @@ def resolve_progress_path(platform: str) -> Path:
     if platform == "cursor":
         return home / ".cursor" / "language-progress.json"
     return home / ".claude" / "language-progress.json"
+
+
+def resolve_shared_progress_path() -> Path:
+    return Path.home() / ".prompt-language-coach" / "language-progress.json"
+
+
+def resolve_all_progress_paths() -> list[Path]:
+    return [
+        resolve_shared_progress_path(),
+        Path.home() / ".codex" / "language-progress.json",
+        Path.home() / ".claude" / "language-progress.json",
+        Path.home() / ".cursor" / "language-progress.json",
+    ]
 
 
 def resolve_codex_hooks_path() -> Path:
@@ -88,7 +94,7 @@ def _save_progress(progress_path: Path, data: dict[str, Any]) -> None:
 
 
 def cmd_record_band(args: argparse.Namespace) -> int:
-    progress_path = resolve_progress_path(args.platform)
+    progress_path = resolve_shared_progress_path()
     data = _load_progress(progress_path)
 
     language = args.language
@@ -116,14 +122,17 @@ def cmd_record_band(args: argparse.Namespace) -> int:
 
     entry["estimates"] = estimates
     entry["currentBand"] = band
-    _save_progress(progress_path, data)
+    for path in resolve_all_progress_paths():
+        _save_progress(path, data)
     print(f"Recorded: {language} band {band} on {today}")
     return 0
 
 
 def cmd_progress(args: argparse.Namespace) -> int:
-    progress_path = resolve_progress_path(args.platform)
+    progress_path = resolve_shared_progress_path()
     data = _load_progress(progress_path)
+    if not data:
+        data = _load_progress(resolve_progress_path(args.platform))
 
     filter_language = getattr(args, "language", None)
     languages = [filter_language] if filter_language else sorted(data.keys())
@@ -230,9 +239,8 @@ def list_targets(config: dict[str, Any]) -> list[str]:
 
 
 def _target_defaults(config: dict[str, Any], language: str) -> dict[str, Any]:
-    target = {"targetLanguage": language}
-    for key in TARGET_INHERIT_KEYS:
-        target[key] = config.get(key)
+    target = load_defaults()
+    target["targetLanguage"] = language
     for key in TARGET_FALLBACK_KEYS:
         target[key] = config.get(key)
     return target

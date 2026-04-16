@@ -7,10 +7,15 @@ Usage:
 Files updated (in this repo):
     .claude-plugin/plugin.json
     .cursor-plugin/plugin.json
-    .codex-plugin/plugin.json   (if it contains a version field)
+    .codex-plugin/plugin.json
 
 Files updated (in the sibling plugins repo, if present):
     ../plugins/.claude-plugin/marketplace.json  — language-coach entry only
+
+Release model:
+    - Git tags and GitHub releases are the canonical release record
+    - Codex, Claude Code, and Cursor all read their shipped version from plugin.json
+    - Claude marketplace sync is an extra downstream step, not the source of truth
 """
 from __future__ import annotations
 
@@ -33,6 +38,13 @@ MARKETPLACE = PLUGINS_REPO / ".claude-plugin" / "marketplace.json"
 PLUGIN_NAME  = "language-coach"
 
 
+def _display_path(path: Path) -> str:
+    try:
+        return str(path.relative_to(REPO_ROOT.parent))
+    except ValueError:
+        return str(path)
+
+
 def _bump_json_field(path: Path, new_version: str) -> bool:
     """Set top-level 'version' in a JSON file. Returns True if changed."""
     if not path.exists():
@@ -41,11 +53,11 @@ def _bump_json_field(path: Path, new_version: str) -> bool:
     data = json.loads(path.read_text(encoding="utf-8"))
     old = data.get("version", "<none>")
     if old == new_version:
-        print(f"  already {new_version}: {path.relative_to(REPO_ROOT.parent)}")
+        print(f"  already {new_version}: {_display_path(path)}")
         return False
     data["version"] = new_version
     path.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
-    print(f"  {old} → {new_version}: {path.relative_to(REPO_ROOT.parent)}")
+    print(f"  {old} → {new_version}: {_display_path(path)}")
     return True
 
 
@@ -62,9 +74,9 @@ def _bump_marketplace(path: Path, plugin_name: str, new_version: str) -> bool:
             if old != new_version:
                 entry["version"] = new_version
                 changed = True
-                print(f"  {old} → {new_version}: {path.relative_to(REPO_ROOT.parent)} [{plugin_name}]")
+                print(f"  {old} → {new_version}: {_display_path(path)} [{plugin_name}]")
             else:
-                print(f"  already {new_version}: {path.relative_to(REPO_ROOT.parent)} [{plugin_name}]")
+                print(f"  already {new_version}: {_display_path(path)} [{plugin_name}]")
     if changed:
         path.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     return changed

@@ -118,6 +118,7 @@ class PromptBuilderTests(unittest.TestCase):
         self.assertIn("Mini drill", prompt)
         self.assertIn(MIXED_LANGUAGE_GUIDANCE, prompt)
         self.assertIn("╭─ 📚 IELTS Writing Coaching ─", prompt)
+        self.assertIn("Do not start above 5.5 on a first scored sample", prompt)
 
     def test_ielts_speaking_prompt_avoids_fake_pronunciation_scoring(self) -> None:
         config = json.loads(
@@ -129,6 +130,19 @@ class PromptBuilderTests(unittest.TestCase):
         self.assertIn("Do not claim to score pronunciation from text alone", prompt)
         self.assertIn(MIXED_LANGUAGE_GUIDANCE, prompt)
         self.assertIn("╭─ 📚 IELTS Speaking Coaching ─", prompt)
+
+    def test_japanese_prompt_switches_scoring_scale_to_jlpt(self) -> None:
+        config = json.loads(
+            (FIXTURES / "config_ielts_writing.json").read_text(encoding="utf-8")
+        )
+        config["targetLanguage"] = "Japanese"
+        config["currentLevel"] = "N5"
+        config["targetBand"] = "N3"
+
+        prompt = build_prompt(config)
+
+        self.assertIn("Estimate using JLPT levels (N5, N4, N3, N2, N1)", prompt)
+        self.assertIn("Default to N5 on a first scored sample", prompt)
 
 
 if __name__ == "__main__":
