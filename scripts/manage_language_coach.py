@@ -20,6 +20,7 @@ from shared.config.schema import (
     ALLOWED_RESPONSE_LANGUAGES,
     ALLOWED_STYLES,
 )
+from shared.proficiency import normalize_estimate, scale_for_language
 from shared.prompts.build_prompt import build_prompt
 from platforms.codex.install_hooks import (
     HOOK_EVENT,
@@ -45,12 +46,8 @@ def resolve_default_config(platform: str) -> Path:
 
 
 def resolve_progress_path(platform: str) -> Path:
-    home = Path.home()
-    if platform == "codex":
-        return home / ".codex" / "language-progress.json"
-    if platform == "cursor":
-        return home / ".cursor" / "language-progress.json"
-    return home / ".claude" / "language-progress.json"
+    del platform
+    return resolve_shared_progress_path()
 
 
 def resolve_shared_progress_path() -> Path:
@@ -93,15 +90,84 @@ def _save_progress(progress_path: Path, data: dict[str, Any]) -> None:
     progress_path.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
 
 
+def _merge_estimates(
+    current: list[dict[str, str]], incoming: list[dict[str, str]]
+) -> list[dict[str, str]]:
+    merged: dict[str, dict[str, str]] = {}
+
+    for record in current + incoming:
+        date_key = record.get("date", "")
+        if not date_key:
+            continue
+        existing = merged.get(date_key)
+        if existing is None:
+            merged[date_key] = dict(record)
+            continue
+        if record.get("text") and not existing.get("text"):
+            merged[date_key] = dict(record)
+
+    return [merged[key] for key in sorted(merged.keys())]
+
+
+def load_progress_data(platform: str) -> dict[str, Any]:
+    del platform
+    merged: dict[str, Any] = {}
+
+    for path in resolve_all_progress_paths():
+        payload = _load_progress(path)
+        for language, incoming_entry in payload.items():
+            if not isinstance(incoming_entry, dict):
+                continue
+            entry = merged.setdefault(
+                language,
+                {
+                    "estimates": [],
+                    "currentBand": None,
+                    "scale": scale_for_language(language).key,
+                },
+            )
+            entry["scale"] = (
+                incoming_entry.get("scale")
+                or entry.get("scale")
+                or scale_for_language(language).key
+            )
+            entry["estimates"] = _merge_estimates(
+                entry.get("estimates", []),
+                incoming_entry.get("estimates", []),
+            )
+            if entry["estimates"]:
+                entry["currentBand"] = entry["estimates"][-1].get("band")
+            elif incoming_entry.get("currentBand") is not None:
+                entry["currentBand"] = incoming_entry.get("currentBand")
+
+    return merged
+
+
+def save_progress_data(platform: str, data: dict[str, Any]) -> None:
+    del platform
+    for path in resolve_all_progress_paths():
+        _save_progress(path, data)
+
+
+def ensure_progress_snapshot(platform: str) -> dict[str, Any]:
+    data = load_progress_data(platform)
+    if data:
+        save_progress_data(platform, data)
+    return data
+
+
 def cmd_record_band(args: argparse.Namespace) -> int:
-    progress_path = resolve_shared_progress_path()
-    data = _load_progress(progress_path)
+    data = load_progress_data(args.platform)
 
     language = args.language
-    band = args.band
+    scale = scale_for_language(language)
+    band = normalize_estimate(args.band, scale=scale) or args.band
     today = datetime.date.today().isoformat()
 
-    entry = data.setdefault(language, {"estimates": [], "currentBand": None})
+    entry = data.setdefault(
+        language,
+        {"estimates": [], "currentBand": None, "scale": scale.key},
+    )
     estimates: list[dict[str, str]] = entry.get("estimates", [])
 
     # Build the record — include original text when provided
@@ -122,17 +188,14 @@ def cmd_record_band(args: argparse.Namespace) -> int:
 
     entry["estimates"] = estimates
     entry["currentBand"] = band
-    for path in resolve_all_progress_paths():
-        _save_progress(path, data)
+    entry["scale"] = scale.key
+    save_progress_data(args.platform, data)
     print(f"Recorded: {language} band {band} on {today}")
     return 0
 
 
 def cmd_progress(args: argparse.Namespace) -> int:
-    progress_path = resolve_shared_progress_path()
-    data = _load_progress(progress_path)
-    if not data:
-        data = _load_progress(resolve_progress_path(args.platform))
+    data = ensure_progress_snapshot(args.platform)
 
     filter_language = getattr(args, "language", None)
     languages = [filter_language] if filter_language else sorted(data.keys())
@@ -241,6 +304,11 @@ def list_targets(config: dict[str, Any]) -> list[str]:
 def _target_defaults(config: dict[str, Any], language: str) -> dict[str, Any]:
     target = load_defaults()
     target["targetLanguage"] = language
+    target["goal"] = "everyday"
+    target["mode"] = "everyday"
+    target["ieltsFocus"] = "both"
+    target["targetBand"] = ""
+    target["currentLevel"] = ""
     for key in TARGET_FALLBACK_KEYS:
         target[key] = config.get(key)
     return target

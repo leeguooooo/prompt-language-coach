@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import argparse
-import json
 import sys
 from datetime import date, datetime, timedelta
 from pathlib import Path
@@ -11,7 +10,8 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from scripts.manage_language_coach import resolve_progress_path as resolve_progress_path
+from scripts.manage_language_coach import load_progress_data, resolve_progress_path as resolve_progress_path
+from shared.proficiency import estimate_sort_value, normalize_estimate, scale_for_language
 
 
 def parse_args() -> argparse.Namespace:
@@ -45,42 +45,40 @@ def _linear_trend(points: list[tuple[int, float]]) -> float | None:
 
 
 def analyze_language(language: str, entry: dict[str, Any]) -> dict[str, Any]:
+    scale = scale_for_language(language, entry.get("scale"))
     estimates: list[dict[str, str]] = entry.get("estimates", [])
     if not estimates:
-        return {"language": language, "sessions": 0, "status": "no data"}
+        return {"language": language, "sessions": 0, "status": "no data", "scale": scale.key}
 
     # Parse all valid entries; carry optional text field
-    dated: list[tuple[date, float, str]] = []
+    dated: list[tuple[date, float, str, str]] = []
     for e in estimates:
         d = _parse_date(e.get("date", ""))
-        try:
-            b = float(e.get("band", ""))
-        except (ValueError, TypeError):
-            b = None
+        band_display = normalize_estimate(e.get("band", ""), scale=scale) or e.get("band", "")
+        b = estimate_sort_value(e.get("band", ""), scale=scale)
         if d is not None and b is not None:
-            dated.append((d, b, e.get("text", "")))
+            dated.append((d, b, band_display, e.get("text", "")))
 
     if not dated:
-        return {"language": language, "sessions": 0, "status": "no data"}
+        return {"language": language, "sessions": 0, "status": "no data", "scale": scale.key}
 
     dated.sort(key=lambda x: x[0])
     sessions = len(dated)
-    first_date, first_band, _ = dated[0]
-    last_date, last_band, _ = dated[-1]
+    first_date, first_band_value, first_band, _ = dated[0]
+    last_date, last_band_value, last_band, _ = dated[-1]
     today = date.today()
     days_active = (last_date - first_date).days + 1
     days_since_last = (today - last_date).days
 
     # Unique practice days
-    practice_days = len({d for d, _, _t in dated})
+    practice_days = len({d for d, _, _display, _t in dated})
     consistency_pct = round(practice_days / max(days_active, 1) * 100)
 
     # Best / worst session
-    best_band = max(b for _, b, _t in dated)
-    first_band_value = dated[0][1]
+    best_band = max(b for _, b, _display, _t in dated)
 
     # Trend: slope in band/day, convert to band/week
-    indexed = [(i, b) for i, (_, b, _t) in enumerate(dated)]
+    indexed = [(i, b) for i, (_, b, _display, _t) in enumerate(dated)]
     slope_per_session = _linear_trend(indexed)
     # Average time between sessions
     if sessions > 1 and days_active > 0:
@@ -96,11 +94,11 @@ def analyze_language(language: str, entry: dict[str, Any]) -> dict[str, Any]:
     # Projected band at target (6.5 default) — weeks needed
     target_band = 6.5
     projected_weeks: int | None = None
-    if band_per_week and band_per_week > 0 and last_band < target_band:
-        projected_weeks = int((target_band - last_band) / band_per_week)
+    if scale.key == "ielts" and band_per_week and band_per_week > 0 and last_band_value < target_band:
+        projected_weeks = int((target_band - last_band_value) / band_per_week)
 
     # Streak: consecutive days ending on last practice day
-    date_set = {d for d, _, _t in dated}
+    date_set = {d for d, _, _display, _t in dated}
     streak = 0
     cursor = last_date
     while cursor in date_set:
@@ -109,19 +107,21 @@ def analyze_language(language: str, entry: dict[str, Any]) -> dict[str, Any]:
 
     # Recent momentum: last 3 vs first 3 sessions
     if sessions >= 6:
-        early_avg = sum(b for _, b, _t in dated[:3]) / 3
-        recent_avg = sum(b for _, b, _t in dated[-3:]) / 3
+        early_avg = sum(b for _, b, _display, _t in dated[:3]) / 3
+        recent_avg = sum(b for _, b, _display, _t in dated[-3:]) / 3
         momentum = round(recent_avg - early_avg, 2)
     else:
         momentum = None
 
     return {
         "language": language,
+        "scale": scale.key,
+        "unit_label": scale.unit_label,
         "sessions": sessions,
         "current_band": last_band,
         "first_band": first_band_value,
         "best_band": best_band,
-        "total_gain": round(last_band - first_band_value, 2),
+        "total_gain": round(last_band_value - first_band_value, 2),
         "days_active": days_active,
         "practice_days": practice_days,
         "consistency_pct": consistency_pct,
@@ -131,7 +131,7 @@ def analyze_language(language: str, entry: dict[str, Any]) -> dict[str, Any]:
         "momentum": momentum,
         "projected_weeks_to_target": projected_weeks,
         "target_band": target_band,
-        "history": [{"date": str(d), "band": b, "text": t} for d, b, t in dated],
+        "history": [{"date": str(d), "band": display, "text": t} for d, _sort, display, t in dated],
     }
 
 
@@ -166,7 +166,9 @@ def _format_report(analyses: list[dict[str, Any]]) -> str:
         if a["band_per_week"] is not None:
             bpw = a["band_per_week"]
             direction = "↑" if bpw > 0 else ("↓" if bpw < 0 else "→")
-            lines.append(f"  Velocity:      {direction} {abs(bpw):.3f} band/week")
+            lines.append(
+                f"  Velocity:      {direction} {abs(bpw):.3f} {a.get('unit_label', 'band')}/week"
+            )
 
         if a["momentum"] is not None:
             m = a["momentum"]
@@ -194,17 +196,12 @@ def _format_report(analyses: list[dict[str, Any]]) -> str:
 def main() -> int:
     args = parse_args()
     progress_path = resolve_progress_path(args.platform)
+    data = load_progress_data(args.platform)
 
-    if not progress_path.exists():
+    if not data:
         print(f"No progress data found at {progress_path}.")
         print("Start a coaching session in IELTS mode to record your first band estimate.")
         return 0
-
-    try:
-        data: dict[str, Any] = json.loads(progress_path.read_text(encoding="utf-8"))
-    except (json.JSONDecodeError, OSError) as e:
-        print(f"Error reading progress file: {e}", file=sys.stderr)
-        return 1
 
     if args.language:
         matched = {k: v for k, v in data.items() if k.casefold() == args.language.casefold()}

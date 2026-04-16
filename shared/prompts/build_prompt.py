@@ -5,18 +5,21 @@ from pathlib import Path
 from typing import Any, Optional
 
 from shared.pedagogy.modes import guidance_for_mode, sections_for_mode
+from shared.proficiency import estimate_sort_value, scale_for_language
 
 
 def _scoring_guidance(target_language: str, mode: str) -> list[str]:
-    normalized = target_language.strip().casefold()
-    if normalized == "japanese":
-        return [
-            "Estimate using JLPT levels (N5, N4, N3, N2, N1).",
-            "Default to N5 on a first scored sample.",
-        ]
-    if mode in {"ielts-writing", "ielts-speaking"}:
-        return ["Do not start above 5.5 on a first scored sample."]
-    return []
+    if not mode.startswith("ielts"):
+        return []
+    return list(scale_for_language(target_language).guidance_lines)
+
+
+def _sections_for_prompt(target_language: str, mode: str) -> list[str]:
+    sections = list(sections_for_mode(mode))
+    scale = scale_for_language(target_language)
+    if sections and sections[0] == "Band estimate":
+        sections[0] = scale.estimate_label
+    return sections
 
 
 def _progress_note(progress_path: str) -> Optional[str]:
@@ -34,6 +37,7 @@ def _progress_note(progress_path: str) -> Optional[str]:
     lines = ["User's recent writing level history:"]
     for language in sorted(data.keys()):
         entry = data[language]
+        scale = scale_for_language(language, entry.get("scale"))
         estimates: list[dict[str, str]] = entry.get("estimates", [])
         current_band = entry.get("currentBand")
         recent = estimates[-3:]
@@ -43,10 +47,18 @@ def _progress_note(progress_path: str) -> Optional[str]:
             lines.append(f"- {language}: current estimate {current_band}")
         else:
             prev_band = recent[-2].get("band")
-            if prev_band and current_band and prev_band != current_band:
+            prev_value = estimate_sort_value(prev_band, scale=scale)
+            current_value = estimate_sort_value(current_band, scale=scale)
+            if (
+                prev_band
+                and current_band
+                and prev_band != current_band
+                and prev_value is not None
+                and current_value is not None
+            ):
                 lines.append(
                     f"- {language}: current estimate {current_band} (up from {prev_band} last session)"
-                    if float(current_band) > float(prev_band)
+                    if current_value > prev_value
                     else f"- {language}: current estimate {current_band} (down from {prev_band} last session)"
                 )
             else:
@@ -113,6 +125,7 @@ def _target_profiles(config: dict[str, Any]) -> list[dict[str, Any]]:
 def _target_summary(
     target: dict[str, Any], *, detected_language: str | None = None
 ) -> list[str]:
+    target_language = detected_language or target["targetLanguage"]
     lines = [
         (
             f"- {target['targetLanguage']}: goal={target['goal']}, "
@@ -129,10 +142,10 @@ def _target_summary(
     lines.extend(f"  - {line}" for line in guidance_for_mode(target["mode"]))
     lines.extend(
         f"  - {line}"
-        for line in _scoring_guidance(target["targetLanguage"], target["mode"])
+        for line in _scoring_guidance(target_language, target["mode"])
     )
     lines.append("  Feedback sections:")
-    lines.extend(f"  - {section}" for section in sections_for_mode(target["mode"]))
+    lines.extend(f"  - {section}" for section in _sections_for_prompt(target_language, target["mode"]))
     lines.append("  Box framing:")
     lines.extend(
         f"  - {line}"
@@ -203,7 +216,9 @@ def build_prompt(
         scoring_text = "\n".join(
             f"- {line}" for line in _scoring_guidance(config["targetLanguage"], mode)
         )
-        section_text = "\n".join(f"- {section}" for section in sections_for_mode(mode))
+        section_text = "\n".join(
+            f"- {section}" for section in _sections_for_prompt(config["targetLanguage"], mode)
+        )
         base.extend(
             [
                 "Coaching guidance:",
@@ -239,15 +254,16 @@ def build_prompt(
     if repo_root is not None:
         platform = config.get("platform", "claude")
         parts.append(
-            "Band progress recording — run this command ONLY when ALL three conditions are met:\n"
+            "Progress recording — run this command ONLY when ALL three conditions are met:\n"
             "1. The active coaching mode is ielts-writing or ielts-speaking (NOT everyday or review).\n"
             "2. The user's message was written in a target language (NOT purely in the native language).\n"
-            "3. You provided a numeric band estimate in the coaching box.\n"
+            "3. You provided a scale estimate in the coaching box.\n"
+            "Use IELTS for English (e.g. 5.5, 6.0), JLPT for Japanese (e.g. N5, N4), and CEFR for other languages (e.g. A2, B1).\n"
             "When all three are true, silently run (no output needed):\n"
             f'python3 "{repo_root}/scripts/manage_language_coach.py" '
             f'--platform {platform} record-band "<detected_language>" "<estimated_band>" '
             '--text "<user message, first 200 chars, inner double-quotes replaced with single-quotes>"\n'
-            'Use the exact detected language name and a numeric band string (e.g. "6.0", "5.5").\n'
+            'Use the exact detected language name and the exact estimate string (e.g. "6.0", "N5", "B1").\n'
             "Skip the command for everyday mode, review mode, or pure native-language input."
         )
 
