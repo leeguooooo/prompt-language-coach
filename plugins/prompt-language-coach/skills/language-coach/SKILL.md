@@ -294,6 +294,58 @@ python3 ../../scripts/manage_language_coach.py --platform <platform> progress "<
 
 Relay the output back to the user. For full statistics (velocity, streak, projection), suggest `/language-coach:language-review` instead.
 
+### vocab on | off
+
+Toggle the vocab focus feature (tracks gap / correction / upgrade words that need practice). Only active when mode is `scored-writing` or `scored-speaking`.
+
+```bash
+python3 ../../scripts/manage_language_coach.py --platform <platform> vocab on
+# or
+python3 ../../scripts/manage_language_coach.py --platform <platform> vocab off
+```
+
+Confirm: `Vocab focus enabled.` or `Vocab focus disabled.`
+
+### vocab [language]
+
+Show the current active vocab focus list (and the most recent mastered entries).
+
+```bash
+python3 ../../scripts/manage_language_coach.py --platform <platform> vocab
+# or for a specific language:
+python3 ../../scripts/manage_language_coach.py --platform <platform> vocab "<language>"
+```
+
+Relay the printed output back to the user.
+
+### track-vocab <language> gap|correction|upgrade ...
+
+Silently invoked by the coaching prompt when vocabFocus is on. Users do not typically run this directly — the model calls it after each coaching turn. Signatures:
+
+```bash
+# native-language fallback inside a target-language message (strongest signal)
+python3 ../../scripts/manage_language_coach.py --platform <platform> track-vocab <lang> gap \
+  --native "<native-word>" --target "<target-word>" [--context "<C>"] [--note "<N>"]
+
+# user wrote a wrong target-language word that coaching corrected
+python3 ../../scripts/manage_language_coach.py --platform <platform> track-vocab <lang> correction \
+  --wrong "<wrong>" --right "<right>" [--context "<C>"] [--note "<N>"]
+
+# user wrote a low-band target-language word that coaching upgraded (mixed-language messages only)
+python3 ../../scripts/manage_language_coach.py --platform <platform> track-vocab <lang> upgrade \
+  --from "<from>" --to "<to>" [--context "<C>"] [--note "<N>"]
+```
+
+### mark-vocab-mastered <language> <identifier>
+
+Silently invoked by the coaching prompt when a focus entry is used correctly in the current message. Three correct uses promote the entry into the mastered audit list.
+
+```bash
+python3 ../../scripts/manage_language_coach.py --platform <platform> mark-vocab-mastered <lang> "<identifier>"
+```
+
+`<identifier>` is the `target` / `right` / `to` field of the original focus entry.
+
 ### off
 
 Run:
@@ -343,6 +395,8 @@ Commands:
   level <text>       Set current level
   status             Show current configuration
   progress [lang]    Show raw estimate history (use /language-coach:language-review for full stats)
+  vocab on|off       Toggle vocab focus tracking (scored modes only)
+  vocab [lang]       Show active vocab focus list
   install-hook       Install the Codex UserPromptSubmit hook
   remove-hook        Remove the Codex UserPromptSubmit hook
   hook-status        Show whether the Codex hook is installed

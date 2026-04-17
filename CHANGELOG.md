@@ -4,6 +4,15 @@ All notable changes to this project are recorded here.
 
 This file is updated by the release workflow via `scripts/build_changelog.py`.
 
+## v0.11.1 - 2026-04-17
+
+### Fixes
+- Teach the `language-coach` skill to dispatch the new vocab commands
+  (`vocab on|off`, `vocab [<lang>]`, `track-vocab`, `mark-vocab-mastered`).
+  The 0.11.0 release added the underlying CLI but not the skill routing,
+  so `/language-coach:language-coach vocab on` fell through to the
+  fallback help text.
+
 ## v0.11.0 - 2026-04-17
 
 ### Features
