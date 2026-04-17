@@ -165,11 +165,19 @@ def _target_summary(
     return lines
 
 
-def build_prompt(
+def build_progress_note(progress_path: Optional[str]) -> str:
+    """Return the short dynamic progress note, or '' if unavailable."""
+    if progress_path is None:
+        return ""
+    note = _progress_note(progress_path)
+    return note or ""
+
+
+def build_static_prompt(
     config: dict[str, Any],
     repo_root: Optional[str] = None,
-    progress_path: Optional[str] = None,
 ) -> str:
+    """The long static coaching instructions (no progress note)."""
     targets = _target_profiles(config)
     if targets:
         base = [
@@ -244,14 +252,7 @@ def build_prompt(
             ]
         )
 
-    parts: list[str] = []
-
-    if progress_path is not None:
-        note = _progress_note(progress_path)
-        if note is not None:
-            parts.append(note)
-
-    parts.extend(base)
+    parts: list[str] = list(base)
     parts.extend(
         [
             f"Deliver all coaching feedback in {config['nativeLanguage']}.",
@@ -281,3 +282,15 @@ def build_prompt(
         )
 
     return "\n".join(parts)
+
+
+def build_prompt(
+    config: dict[str, Any],
+    repo_root: Optional[str] = None,
+    progress_path: Optional[str] = None,
+) -> str:
+    static_text = build_static_prompt(config, repo_root=repo_root)
+    note = build_progress_note(progress_path)
+    if note:
+        return note + "\n" + static_text
+    return static_text

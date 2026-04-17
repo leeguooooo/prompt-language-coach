@@ -150,7 +150,23 @@ Then run the setup command in Cursor's AI panel:
 /language-coach setup
 ```
 
-The setup wizard asks your native language, target language, goal, style, and response language — same as Claude Code. The resulting config is stored in the shared file `~/.prompt-language-coach/language-coach.json` and mirrored to `~/.cursor/language-coach.json`.
+The setup wizard asks your native language, target language, goal, style, and response language — same as Claude Code. The resulting config is stored in the shared file `~/.prompt-language-coach/language-coach.json` and mirrored to `~/.cursor/language-coach.json`. The setup flow also installs the Cursor `sessionStart` hook into `~/.cursor/hooks.json` — plugin-manifest hooks are unreliable on some Cursor releases, so the top-level entry is what actually fires.
+
+#### Upgrading from 0.9.x on Cursor
+
+If your coaching stopped appearing after upgrading, re-run setup once so the top-level hook is installed:
+
+```
+/language-coach setup
+```
+
+Or install the hook directly:
+
+```bash
+python3 ~/.cursor/extensions/<your-cursor-plugin-path>/scripts/manage_language_coach.py --platform cursor install-hook
+```
+
+Verify with `$language-coach hook-status` (or `/language-coach hook-status`).
 
 ---
 

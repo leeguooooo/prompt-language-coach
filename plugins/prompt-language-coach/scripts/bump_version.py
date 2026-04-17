@@ -97,7 +97,17 @@ def main() -> int:
 
     any_changed |= _bump_marketplace(MARKETPLACE, PLUGIN_NAME, new_version)
 
-    if not any_changed:
+    try:
+        from scripts.sync_plugin_bundle import sync as sync_bundle
+    except Exception:
+        sys.path.insert(0, str(REPO_ROOT))
+        from scripts.sync_plugin_bundle import sync as sync_bundle
+    print("\nSyncing marketplace bundle …")
+    synced = sync_bundle()
+    for path in synced:
+        print(f"  synced: {_display_path(path)}")
+
+    if not any_changed and not synced:
         print("\nNothing to change.")
     else:
         print(f"\nDone. Commit both repos and push:")

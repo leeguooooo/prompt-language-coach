@@ -150,7 +150,23 @@ python3 ~/.codex/.tmp/marketplaces/prompt-language-coach/plugins/prompt-language
 /language-coach setup
 ```
 
-设置向导会逐一询问你的母语、目标语言、学习目标、辅导风格和回复语言，与 Claude Code 一致。配置会写入共享文件 `~/.prompt-language-coach/language-coach.json`，并镜像到 `~/.cursor/language-coach.json`。
+设置向导会逐一询问你的母语、目标语言、学习目标、辅导风格和回复语言，与 Claude Code 一致。配置会写入共享文件 `~/.prompt-language-coach/language-coach.json`，并镜像到 `~/.cursor/language-coach.json`。setup 流程还会把 Cursor 的 `sessionStart` hook 写入 `~/.cursor/hooks.json` —— 某些 Cursor 版本的 plugin-manifest hook 不会生效，只有这个 top-level 位置是可靠的。
+
+#### 从 0.9.x 升级到 0.10.0（Cursor 用户）
+
+如果升级后教学没生效，重跑一次 setup 即可安装 top-level hook：
+
+```
+/language-coach setup
+```
+
+或手动安装 hook：
+
+```bash
+python3 ~/.cursor/extensions/<你的 cursor 插件路径>/scripts/manage_language_coach.py --platform cursor install-hook
+```
+
+用 `$language-coach hook-status`（或 `/language-coach hook-status`）验证。
 
 ---
 

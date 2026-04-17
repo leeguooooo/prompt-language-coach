@@ -79,7 +79,16 @@ python3 ../../scripts/manage_language_coach.py --platform codex install-hook
 python3 ../../scripts/manage_language_coach.py --platform codex status
 ```
 
-This ensures automatic coaching is installed on Codex immediately after setup.
+For Cursor users, also run:
+
+```bash
+python3 ../../scripts/manage_language_coach.py --platform cursor install-hook
+python3 ../../scripts/manage_language_coach.py --platform cursor status
+```
+
+The Cursor ``install-hook`` writes to ``~/.cursor/hooks.json`` (the top-level location). Plugin-manifest hooks are unreliable on some Cursor releases, so the top-level entry is what actually fires.
+
+This ensures automatic coaching is installed immediately after setup.
 
 Confirm with a short summary of the stored configuration.
 
@@ -237,30 +246,36 @@ Relay the formatted output back to the user.
 
 ### install-hook
 
-Codex only. Run:
+Codex or Cursor. Run:
 
 ```bash
 python3 ../../scripts/manage_language_coach.py --platform codex install-hook
+# or
+python3 ../../scripts/manage_language_coach.py --platform cursor install-hook
 ```
 
-Confirm: `Codex hook installed: <path>`
+Confirm: `Codex hook installed: <path>` or `Cursor hook installed: <path>`
 
 ### remove-hook
 
-Codex only. Run:
+Codex or Cursor. Run:
 
 ```bash
 python3 ../../scripts/manage_language_coach.py --platform codex remove-hook
+# or
+python3 ../../scripts/manage_language_coach.py --platform cursor remove-hook
 ```
 
-Confirm: `Codex hook removed: <path>`
+Confirm: `Codex hook removed: <path>` or `Cursor hook removed: <path>`
 
 ### hook-status
 
-Codex only. Run:
+Codex or Cursor. Run:
 
 ```bash
 python3 ../../scripts/manage_language_coach.py --platform codex hook-status
+# or
+python3 ../../scripts/manage_language_coach.py --platform cursor hook-status
 ```
 
 Relay `installed` or `not installed` back to the user.

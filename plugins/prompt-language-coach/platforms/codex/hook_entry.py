@@ -9,10 +9,12 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
+from scripts.manage_language_coach import resolve_effective_config_path
+
 
 def main() -> int:
-    config_path = Path.home() / ".codex" / "language-coach.json"
-    if not config_path.exists():
+    config_path = resolve_effective_config_path("codex")
+    if config_path is None:
         return 0
 
     python_executable = sys.executable or "python3"

@@ -12,6 +12,8 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
+from shared.codex.agents_md import remove_block as remove_codex_agents_md_block
+from shared.codex.agents_md import upsert_block as upsert_codex_agents_md_block
 from shared.config.io import load_config, load_defaults, save_config
 from shared.config.schema import (
     ALLOWED_GOALS,
@@ -23,13 +25,20 @@ from shared.config.schema import (
     canonicalize_mode,
 )
 from shared.proficiency import normalize_estimate, scale_for_language
-from shared.prompts.build_prompt import build_prompt
+from shared.prompts.build_prompt import build_prompt, build_static_prompt
 from platforms.codex.install_hooks import (
     HOOK_EVENT,
     install as install_codex_hook,
     is_managed_entry,
     load_payload as load_codex_hooks_payload,
     remove as remove_codex_hook,
+)
+from platforms.cursor.install_hooks import (
+    HOOK_EVENT as CURSOR_HOOK_EVENT,
+    install as install_cursor_hook,
+    is_managed_entry as is_cursor_managed_entry,
+    load_payload as load_cursor_hooks_payload,
+    remove as remove_cursor_hook,
 )
 
 TARGET_FALLBACK_KEYS = (
@@ -45,6 +54,35 @@ def resolve_default_config(platform: str) -> Path:
     if platform == "cursor":
         return home / ".cursor" / "language-coach.json"
     return home / ".claude" / "language-coach.json"
+
+
+def resolve_shared_config_path() -> Path:
+    return Path.home() / ".prompt-language-coach" / "language-coach.json"
+
+
+def resolve_all_config_paths() -> list[Path]:
+    return [
+        resolve_shared_config_path(),
+        Path.home() / ".claude" / "language-coach.json",
+        Path.home() / ".codex" / "language-coach.json",
+        Path.home() / ".cursor" / "language-coach.json",
+    ]
+
+
+def resolve_effective_config_path(platform: str) -> Path | None:
+    preferred = [
+        resolve_default_config(platform),
+        resolve_shared_config_path(),
+    ]
+    fallbacks = [
+        path
+        for path in resolve_all_config_paths()
+        if path not in preferred
+    ]
+    for candidate in preferred + fallbacks:
+        if candidate.exists():
+            return candidate
+    return None
 
 
 def resolve_progress_path(platform: str) -> Path:
@@ -76,6 +114,19 @@ def codex_hook_installed(hooks_path: Path) -> bool:
     if not isinstance(entries, list):
         return False
     return any(is_managed_entry(entry) for entry in entries)
+
+
+def resolve_cursor_hooks_path() -> Path:
+    return Path.home() / ".cursor" / "hooks.json"
+
+
+def cursor_hook_installed(hooks_path: Path) -> bool:
+    payload = load_cursor_hooks_payload(hooks_path)
+    hooks = payload.get("hooks", {})
+    entries = hooks.get(CURSOR_HOOK_EVENT, [])
+    if not isinstance(entries, list):
+        return False
+    return any(is_cursor_managed_entry(entry) for entry in entries)
 
 
 def _load_progress(progress_path: Path) -> dict[str, Any]:
@@ -166,6 +217,12 @@ def ensure_progress_snapshot(platform: str) -> dict[str, Any]:
     if data:
         save_progress_data(platform, data)
     return data
+
+
+def save_config_data(platform: str, config: dict[str, Any]) -> None:
+    del platform
+    for path in resolve_all_config_paths():
+        save_config(path, config)
 
 
 def cmd_record_estimate(args: argparse.Namespace) -> int:
@@ -543,6 +600,26 @@ def sync_claude_md(config: dict[str, Any], platform: str) -> None:
     md_path.write_text(new_text, encoding="utf-8")
 
 
+def sync_codex_agents_md(config: dict[str, Any]) -> None:
+    """Mirror the static coaching block into ~/.codex/AGENTS.md.
+
+    Codex reads this file on every turn and injects it as hidden user
+    instructions — the model sees it, but it is not rendered in the TUI
+    transcript (unlike UserPromptSubmit hook ``additionalContext``).
+
+    Only active when ~/.codex already exists, so users who never installed
+    Codex don't get a stray file created for them.
+    """
+    codex_home = Path.home() / ".codex"
+    if not codex_home.exists():
+        return
+    if not config.get("enabled", True):
+        remove_codex_agents_md_block()
+        return
+    static_text = build_static_prompt(config, repo_root=str(REPO_ROOT))
+    upsert_codex_agents_md_block(static_text)
+
+
 def main() -> int:
     args = parse_args()
 
@@ -554,21 +631,51 @@ def main() -> int:
         print(resolve_progress_path(args.platform))
         return 0
     if args.command == "install-hook":
-        hooks_path = resolve_codex_hooks_path()
-        install_codex_hook(hooks_path, REPO_ROOT)
-        print(f"Codex hook installed: {hooks_path}")
+        if args.platform == "cursor":
+            hooks_path = resolve_cursor_hooks_path()
+            install_cursor_hook(hooks_path, REPO_ROOT)
+            print(f"Cursor hook installed: {hooks_path}")
+        else:
+            hooks_path = resolve_codex_hooks_path()
+            install_codex_hook(hooks_path, REPO_ROOT)
+            effective_config = resolve_effective_config_path("codex")
+            if effective_config is not None:
+                sync_codex_agents_md(load_config(effective_config))
+            print(f"Codex hook installed: {hooks_path}")
         return 0
     if args.command == "remove-hook":
-        hooks_path = resolve_codex_hooks_path()
-        remove_codex_hook(hooks_path)
-        print(f"Codex hook removed: {hooks_path}")
+        if args.platform == "cursor":
+            hooks_path = resolve_cursor_hooks_path()
+            remove_cursor_hook(hooks_path)
+            print(f"Cursor hook removed: {hooks_path}")
+        else:
+            hooks_path = resolve_codex_hooks_path()
+            remove_codex_hook(hooks_path)
+            remove_codex_agents_md_block()
+            print(f"Codex hook removed: {hooks_path}")
         return 0
     if args.command == "hook-status":
-        print("installed" if codex_hook_installed(resolve_codex_hooks_path()) else "not installed")
+        if args.platform == "cursor":
+            print(
+                "installed"
+                if cursor_hook_installed(resolve_cursor_hooks_path())
+                else "not installed"
+            )
+        else:
+            print(
+                "installed"
+                if codex_hook_installed(resolve_codex_hooks_path())
+                else "not installed"
+            )
         return 0
 
-    path = Path(args.config).expanduser() if args.config else resolve_default_config(args.platform)
-    configured = path.exists()
+    if args.config:
+        path = Path(args.config).expanduser()
+        configured = path.exists()
+    else:
+        effective_path = resolve_effective_config_path(args.platform)
+        path = effective_path or resolve_default_config(args.platform)
+        configured = effective_path is not None
     config = load_config(path)
 
     if args.command == "status":
@@ -576,8 +683,12 @@ def main() -> int:
         return 0
 
     message = apply_command(config, args, path)
-    save_config(path, config)
+    if args.config:
+        save_config(path, config)
+    else:
+        save_config_data(args.platform, config)
     sync_claude_md(config, args.platform)
+    sync_codex_agents_md(config)
     if message is not None:
         print(message)
     print(f"Config file: {path}")

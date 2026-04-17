@@ -1,3 +1,13 @@
+"""Install a top-level ~/.cursor/hooks.json entry for prompt-language-coach.
+
+Plugin-manifest hooks declared via ``.cursor-plugin/plugin.json -> hooks``
+are unreliable on current Cursor releases: ``${CURSOR_PLUGIN_ROOT}`` does
+not always expand, and the plugin manifest is sometimes not reloaded after
+edits. The top-level ``~/.cursor/hooks.json`` location is documented and
+fires consistently, so we mirror the codex installer and register our
+sessionStart entry there with an absolute path.
+"""
+
 from __future__ import annotations
 
 import argparse
@@ -8,34 +18,19 @@ from pathlib import Path
 from typing import Any
 
 
-HOOK_EVENT = "UserPromptSubmit"
-HOOK_ENTRY_PATH = "platforms/codex/hook_entry.py"
+HOOK_EVENT = "sessionStart"
+HOOK_SCRIPT_REL = "hooks/cursor-language-coach.sh"
 
 
 def build_hook_command(repo_root: Path) -> str:
-    hook_entry = shlex.quote(str(repo_root / "platforms" / "codex" / "hook_entry.py"))
-    script_parts = []
-
-    if sys.executable and Path(sys.executable).is_absolute():
-        interpreter = shlex.quote(sys.executable)
-        script_parts.append(f"if [ -x {interpreter} ]; then exec {interpreter} {hook_entry}; fi")
-
-    script_parts.append(
-        f"if command -v python3 >/dev/null 2>&1; then exec python3 {hook_entry}; fi"
-    )
-    script_parts.append("exit 0")
-
-    return f"/bin/sh -lc {shlex.quote('; '.join(script_parts))}"
+    hook_script = shlex.quote(str(repo_root / "hooks" / "cursor-language-coach.sh"))
+    return f"bash {hook_script}"
 
 
 def build_managed_entry(repo_root: Path) -> dict[str, Any]:
     return {
-        "hooks": [
-            {
-                "type": "command",
-                "command": build_hook_command(repo_root),
-            }
-        ]
+        "type": "command",
+        "command": build_hook_command(repo_root),
     }
 
 
@@ -55,18 +50,10 @@ def load_payload(hooks_path: Path) -> dict[str, Any]:
 def is_managed_entry(entry: Any) -> bool:
     if not isinstance(entry, dict):
         return False
-    hooks = entry.get("hooks")
-    if not isinstance(hooks, list):
+    command = entry.get("command")
+    if not isinstance(command, str):
         return False
-    for hook in hooks:
-        if not isinstance(hook, dict):
-            continue
-        if hook.get("type") != "command":
-            continue
-        command = hook.get("command")
-        if isinstance(command, str) and HOOK_ENTRY_PATH in command:
-            return True
-    return False
+    return HOOK_SCRIPT_REL in command
 
 
 def write_payload(hooks_path: Path, payload: dict[str, Any]) -> None:
@@ -112,7 +99,7 @@ def remove(hooks_path: Path) -> None:
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--hooks-path", default=str(Path.home() / ".codex" / "hooks.json")
+        "--hooks-path", default=str(Path.home() / ".cursor" / "hooks.json")
     )
     parser.add_argument("--repo-root", required=True)
     parser.add_argument("command", choices={"install", "remove"})

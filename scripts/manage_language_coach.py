@@ -33,6 +33,13 @@ from platforms.codex.install_hooks import (
     load_payload as load_codex_hooks_payload,
     remove as remove_codex_hook,
 )
+from platforms.cursor.install_hooks import (
+    HOOK_EVENT as CURSOR_HOOK_EVENT,
+    install as install_cursor_hook,
+    is_managed_entry as is_cursor_managed_entry,
+    load_payload as load_cursor_hooks_payload,
+    remove as remove_cursor_hook,
+)
 
 TARGET_FALLBACK_KEYS = (
     "style",
@@ -107,6 +114,19 @@ def codex_hook_installed(hooks_path: Path) -> bool:
     if not isinstance(entries, list):
         return False
     return any(is_managed_entry(entry) for entry in entries)
+
+
+def resolve_cursor_hooks_path() -> Path:
+    return Path.home() / ".cursor" / "hooks.json"
+
+
+def cursor_hook_installed(hooks_path: Path) -> bool:
+    payload = load_cursor_hooks_payload(hooks_path)
+    hooks = payload.get("hooks", {})
+    entries = hooks.get(CURSOR_HOOK_EVENT, [])
+    if not isinstance(entries, list):
+        return False
+    return any(is_cursor_managed_entry(entry) for entry in entries)
 
 
 def _load_progress(progress_path: Path) -> dict[str, Any]:
@@ -611,21 +631,42 @@ def main() -> int:
         print(resolve_progress_path(args.platform))
         return 0
     if args.command == "install-hook":
-        hooks_path = resolve_codex_hooks_path()
-        install_codex_hook(hooks_path, REPO_ROOT)
-        effective_config = resolve_effective_config_path("codex")
-        if effective_config is not None:
-            sync_codex_agents_md(load_config(effective_config))
-        print(f"Codex hook installed: {hooks_path}")
+        if args.platform == "cursor":
+            hooks_path = resolve_cursor_hooks_path()
+            install_cursor_hook(hooks_path, REPO_ROOT)
+            print(f"Cursor hook installed: {hooks_path}")
+        else:
+            hooks_path = resolve_codex_hooks_path()
+            install_codex_hook(hooks_path, REPO_ROOT)
+            effective_config = resolve_effective_config_path("codex")
+            if effective_config is not None:
+                sync_codex_agents_md(load_config(effective_config))
+            print(f"Codex hook installed: {hooks_path}")
         return 0
     if args.command == "remove-hook":
-        hooks_path = resolve_codex_hooks_path()
-        remove_codex_hook(hooks_path)
-        remove_codex_agents_md_block()
-        print(f"Codex hook removed: {hooks_path}")
+        if args.platform == "cursor":
+            hooks_path = resolve_cursor_hooks_path()
+            remove_cursor_hook(hooks_path)
+            print(f"Cursor hook removed: {hooks_path}")
+        else:
+            hooks_path = resolve_codex_hooks_path()
+            remove_codex_hook(hooks_path)
+            remove_codex_agents_md_block()
+            print(f"Codex hook removed: {hooks_path}")
         return 0
     if args.command == "hook-status":
-        print("installed" if codex_hook_installed(resolve_codex_hooks_path()) else "not installed")
+        if args.platform == "cursor":
+            print(
+                "installed"
+                if cursor_hook_installed(resolve_cursor_hooks_path())
+                else "not installed"
+            )
+        else:
+            print(
+                "installed"
+                if codex_hook_installed(resolve_codex_hooks_path())
+                else "not installed"
+            )
         return 0
 
     if args.config:
