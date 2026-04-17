@@ -25,17 +25,11 @@ jobs:
         with:
           python-version: "3.11"
 
+      - name: Install test dependencies
+        run: pip install pytest
+
       - name: Run verification
-        run: |
-          python3 -m unittest \
-            tests.shared.test_config_io \
-            tests.shared.test_prompt_builder \
-            tests.hooks.test_claude_hook_output \
-            tests.hooks.test_codex_hook_install \
-            tests.scripts.test_analyze_progress \
-            tests.scripts.test_bump_version \
-            tests.scripts.test_manage_language_coach \
-            -v
+        run: pytest tests/ -v
 
       - name: Bump version in all plugin manifests
         run: python3 scripts/bump_version.py "${{ github.event.inputs.version }}"
