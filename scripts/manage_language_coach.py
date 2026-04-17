@@ -858,7 +858,7 @@ def sync_claude_md(config: dict[str, Any], platform: str) -> None:
 
     coaching_block = "\n".join([
         _MARKER_START,
-        build_prompt(config),
+        build_static_prompt(config),
         _MARKER_END,
     ])
 
