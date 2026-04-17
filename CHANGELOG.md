@@ -4,6 +4,15 @@ All notable changes to this project are recorded here.
 
 This file is updated by the release workflow via `scripts/build_changelog.py`.
 
+## v0.11.2 - 2026-04-17
+
+### Fixes
+- Skip the full coaching box for trivial inputs. One-word target-language
+  messages like `English` or `ok` used to produce a four-section box
+  that just repeated the same word back — now the coach passes them
+  through without ceremony unless there is an actual error, native
+  fallback, or meaningful upgrade.
+
 ## v0.11.1 - 2026-04-17
 
 ### Fixes

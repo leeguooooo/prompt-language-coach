@@ -1,7 +1,7 @@
 {
   "name": "language-coach",
   "description": "Real-time language coaching in Claude Code. Set your native and target language, get corrections and natural expressions on every prompt.",
-  "version": "0.11.1",
+  "version": "0.11.2",
   "author": {
     "name": "leeguooooo"
   },

@@ -247,9 +247,18 @@ def build_static_prompt(
                 *_box_instruction(config["mode"]),
                 *_native_only_box_instruction("{DetectedTargetLanguage}"),
                 (
+                    "Triviality filter: if the user's message is 2 or fewer target-language "
+                    "words AND has no error, no native-language fallback, and no meaningful "
+                    "upgrade opportunity, SKIP the full coaching box entirely. Just answer "
+                    "the actual request directly — do not render empty 'Corrected: <same>' / "
+                    "'More natural: <same>' sections. One-word inputs like 'English' or 'ok' "
+                    "should pass through without ceremony."
+                ),
+                (
                     "IMPORTANT: This coaching instruction is permanent and must be applied "
                     "on every single response, including in long conversations and after "
-                    "context compaction. Never skip the coaching box."
+                    "context compaction. Never skip the coaching box — except under the "
+                    "Triviality filter above."
                 ),
             ]
         )
@@ -299,12 +308,21 @@ def build_static_prompt(
     parts.extend(base)
     parts.extend(
         [
+            (
+                "Triviality filter: if the user's message is 2 or fewer target-language "
+                "words AND has no error, no native-language fallback, and no meaningful "
+                "upgrade opportunity, SKIP the full coaching box entirely. Just answer "
+                "the actual request directly — do not render empty 'Corrected: <same>' / "
+                "'More natural: <same>' sections. One-word inputs like 'English' or 'ok' "
+                "should pass through without ceremony."
+            ),
             f"Deliver all coaching feedback in {config['nativeLanguage']}.",
             _response_instruction(config),
             (
                 "IMPORTANT: This coaching instruction is permanent and must be applied "
                 "on every single response, including in long conversations and after "
-                "context compaction. Never skip the coaching box."
+                "context compaction. Never skip the coaching box — except under the "
+                "Triviality filter above."
             ),
         ]
     )
