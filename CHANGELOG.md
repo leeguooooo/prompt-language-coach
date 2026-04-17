@@ -4,6 +4,21 @@ All notable changes to this project are recorded here.
 
 This file is updated by the release workflow via `scripts/build_changelog.py`.
 
+## v0.11.3 - 2026-04-17
+
+### Fixes
+- Make the Cursor installer cross-platform. On Windows,
+  `bash "${CURSOR_PLUGIN_ROOT}/hooks/cursor-language-coach.sh"`
+  resolves to `C:\Windows\System32\bash.exe` (WSL), which cannot read
+  Windows paths from the `.sh` wrapper — so the hook never fired and
+  `hook-status` always said `not installed`. The installer now detects
+  Windows and writes a direct `python render_coaching_context.py
+  --platform cursor` command with absolute paths instead. POSIX
+  behavior is unchanged.
+- `is_managed_entry` now recognizes both the POSIX bash wrapper and
+  the Windows Python-direct command as managed, so
+  install/remove/idempotency hold on both operating systems.
+
 ## v0.11.2 - 2026-04-17
 
 ### Fixes

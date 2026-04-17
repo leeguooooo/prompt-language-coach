@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import shlex
 import sys
 from pathlib import Path
@@ -20,9 +21,18 @@ from typing import Any
 
 HOOK_EVENT = "sessionStart"
 HOOK_SCRIPT_REL = "hooks/cursor-language-coach.sh"
+HOOK_RENDER_SIGNATURE = "render_coaching_context.py"
+
+
+def _is_windows() -> bool:
+    return os.name == "nt"
 
 
 def build_hook_command(repo_root: Path) -> str:
+    if _is_windows():
+        python_exec = sys.executable if sys.executable and Path(sys.executable).is_absolute() else "python"
+        render_script = str(repo_root / "scripts" / "render_coaching_context.py")
+        return f'"{python_exec}" "{render_script}" --platform cursor'
     hook_script = shlex.quote(str(repo_root / "hooks" / "cursor-language-coach.sh"))
     return f"bash {hook_script}"
 
@@ -53,7 +63,11 @@ def is_managed_entry(entry: Any) -> bool:
     command = entry.get("command")
     if not isinstance(command, str):
         return False
-    return HOOK_SCRIPT_REL in command
+    if HOOK_SCRIPT_REL in command:
+        return True
+    if HOOK_RENDER_SIGNATURE in command and "--platform cursor" in command:
+        return True
+    return False
 
 
 def write_payload(hooks_path: Path, payload: dict[str, Any]) -> None:
