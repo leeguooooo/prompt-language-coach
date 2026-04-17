@@ -30,6 +30,8 @@ jobs:
 
       - name: Run verification
         run: pytest tests/ -v
+        env:
+          PYTHONPATH: ${{ github.workspace }}
 
       - name: Bump version in all plugin manifests
         run: python3 scripts/bump_version.py "${{ github.event.inputs.version }}"
