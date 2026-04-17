@@ -1,10 +1,14 @@
 from __future__ import annotations
 
 import shutil
+import sys
 from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
 BUNDLED_PLUGIN_ROOT = REPO_ROOT / "plugins" / "prompt-language-coach"
 
 
@@ -23,7 +27,42 @@ def install_codex_plugin(*, home: Path | None = None) -> Path:
         shutil.rmtree(target_root)
     shutil.copytree(source_root, target_root)
     install_skill_wrappers(target_root=target_root, home=target_home)
+    _seed_codex_agents_md(target_home=target_home)
     return target_root
+
+
+def _seed_codex_agents_md(*, target_home: Path) -> None:
+    """Seed ~/.codex/AGENTS.md so the first Codex turn already has coaching.
+
+    Silently skipped if no config exists yet — setup commands write it later.
+    """
+    from shared.codex.agents_md import upsert_block
+    from shared.config.io import load_config
+    from shared.prompts.build_prompt import build_static_prompt
+    from scripts.manage_language_coach import resolve_effective_config_path
+
+    original_home = Path.home()
+    if target_home == original_home:
+        config_path = resolve_effective_config_path("codex")
+    else:
+        candidates = [
+            target_home / ".codex" / "language-coach.json",
+            target_home / ".prompt-language-coach" / "language-coach.json",
+            target_home / ".claude" / "language-coach.json",
+            target_home / ".cursor" / "language-coach.json",
+        ]
+        config_path = next((p for p in candidates if p.exists()), None)
+
+    if config_path is None:
+        return
+
+    config = load_config(config_path)
+    if not config.get("enabled", True):
+        return
+
+    static_text = build_static_prompt(config, repo_root=str(REPO_ROOT))
+    agents_md_path = target_home / ".codex" / "AGENTS.md"
+    upsert_block(static_text, path=agents_md_path)
 
 
 def install_skill_wrappers(*, target_root: Path, home: Path) -> None:

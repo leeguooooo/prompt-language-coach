@@ -12,6 +12,8 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
+from shared.codex.agents_md import remove_block as remove_codex_agents_md_block
+from shared.codex.agents_md import upsert_block as upsert_codex_agents_md_block
 from shared.config.io import load_config, load_defaults, save_config
 from shared.config.schema import (
     ALLOWED_GOALS,
@@ -23,7 +25,7 @@ from shared.config.schema import (
     canonicalize_mode,
 )
 from shared.proficiency import normalize_estimate, scale_for_language
-from shared.prompts.build_prompt import build_prompt
+from shared.prompts.build_prompt import build_prompt, build_static_prompt
 from platforms.codex.install_hooks import (
     HOOK_EVENT,
     install as install_codex_hook,
@@ -578,6 +580,26 @@ def sync_claude_md(config: dict[str, Any], platform: str) -> None:
     md_path.write_text(new_text, encoding="utf-8")
 
 
+def sync_codex_agents_md(config: dict[str, Any]) -> None:
+    """Mirror the static coaching block into ~/.codex/AGENTS.md.
+
+    Codex reads this file on every turn and injects it as hidden user
+    instructions — the model sees it, but it is not rendered in the TUI
+    transcript (unlike UserPromptSubmit hook ``additionalContext``).
+
+    Only active when ~/.codex already exists, so users who never installed
+    Codex don't get a stray file created for them.
+    """
+    codex_home = Path.home() / ".codex"
+    if not codex_home.exists():
+        return
+    if not config.get("enabled", True):
+        remove_codex_agents_md_block()
+        return
+    static_text = build_static_prompt(config, repo_root=str(REPO_ROOT))
+    upsert_codex_agents_md_block(static_text)
+
+
 def main() -> int:
     args = parse_args()
 
@@ -591,11 +613,15 @@ def main() -> int:
     if args.command == "install-hook":
         hooks_path = resolve_codex_hooks_path()
         install_codex_hook(hooks_path, REPO_ROOT)
+        effective_config = resolve_effective_config_path("codex")
+        if effective_config is not None:
+            sync_codex_agents_md(load_config(effective_config))
         print(f"Codex hook installed: {hooks_path}")
         return 0
     if args.command == "remove-hook":
         hooks_path = resolve_codex_hooks_path()
         remove_codex_hook(hooks_path)
+        remove_codex_agents_md_block()
         print(f"Codex hook removed: {hooks_path}")
         return 0
     if args.command == "hook-status":
@@ -621,6 +647,7 @@ def main() -> int:
     else:
         save_config_data(args.platform, config)
     sync_claude_md(config, args.platform)
+    sync_codex_agents_md(config)
     if message is not None:
         print(message)
     print(f"Config file: {path}")
