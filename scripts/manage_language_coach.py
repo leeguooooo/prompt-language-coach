@@ -70,9 +70,10 @@ def resolve_all_config_paths() -> list[Path]:
 
 
 def resolve_effective_config_path(platform: str) -> Path | None:
+    # Shared path is canonical; per-platform mirrors are fallbacks for legacy installs.
     preferred = [
-        resolve_default_config(platform),
         resolve_shared_config_path(),
+        resolve_default_config(platform),
     ]
     fallbacks = [
         path
@@ -83,6 +84,22 @@ def resolve_effective_config_path(platform: str) -> Path | None:
         if candidate.exists():
             return candidate
     return None
+
+
+def _migrate_config_to_shared() -> None:
+    """One-time migration: promote the first existing per-platform config to shared."""
+    shared = resolve_shared_config_path()
+    if shared.exists():
+        return
+    for platform in ("claude", "codex", "cursor"):
+        candidate = resolve_default_config(platform)
+        if candidate.exists():
+            try:
+                shared.parent.mkdir(parents=True, exist_ok=True)
+                shared.write_text(candidate.read_text(encoding="utf-8"), encoding="utf-8")
+            except OSError:
+                pass
+            return
 
 
 def resolve_progress_path(platform: str) -> Path:
@@ -890,6 +907,7 @@ def _should_sync_runtime_files(args: argparse.Namespace, path: Path) -> bool:
 
 def main() -> int:
     args = parse_args()
+    _migrate_config_to_shared()
 
     if args.command in {"record-band", "record-estimate", "track-estimate"}:
         return cmd_record_estimate(args)

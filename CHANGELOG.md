@@ -4,6 +4,17 @@ All notable changes to this project are recorded here.
 
 This file is updated by the release workflow via `scripts/build_changelog.py`.
 
+## v0.11.5 - 2026-04-17
+
+### Fixes
+- Config is now always read from and written to the shared
+  `~/.prompt-language-coach/language-coach.json` regardless of which
+  platform (`claude`, `codex`, `cursor`) invokes the CLI. Per-platform
+  mirrors (`~/.claude/`, `~/.codex/`, `~/.cursor/`) continue to be
+  written on every save for backward compatibility. First-time startup
+  automatically migrates any existing per-platform config to the shared
+  location so no manual action is required.
+
 ## v0.11.4 - 2026-04-17
 
 ### Fixes
