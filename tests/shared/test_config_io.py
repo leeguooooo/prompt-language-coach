@@ -73,6 +73,7 @@ class ConfigIOTests(unittest.TestCase):
         self.assertEqual(config["goal"], "everyday")
         self.assertEqual(config["mode"], "everyday")
         self.assertEqual(config["responseLanguage"], "native")
+        self.assertFalse(config["vocabFocus"])
         self.assertEqual(config["version"], 1)
         self.assertEqual(config["targets"], [])
 
@@ -116,6 +117,7 @@ class ConfigIOTests(unittest.TestCase):
                     "style": "concise",
                     "responseLanguage": "target",
                     "enabled": True,
+                    "vocabFocus": True,
                     "scoringFocus": "writing",
                     "targetEstimate": "7.0",
                     "currentLevel": "",
@@ -130,6 +132,7 @@ class ConfigIOTests(unittest.TestCase):
         self.assertEqual(raw["mode"], "scored-writing")
         self.assertEqual(raw["scoringFocus"], "writing")
         self.assertEqual(raw["targetEstimate"], "7.0")
+        self.assertTrue(raw["vocabFocus"])
         self.assertNotIn("ieltsFocus", raw)
         self.assertNotIn("targetBand", raw)
         self.assertEqual(raw["version"], 1)

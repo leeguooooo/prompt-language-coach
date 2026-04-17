@@ -19,8 +19,10 @@ from shared.prompts.build_prompt import (
 )
 from scripts.manage_language_coach import (
     ensure_progress_snapshot,
+    ensure_vocab_snapshot,
     resolve_effective_config_path,
     resolve_progress_path,
+    resolve_vocab_path,
 )
 
 
@@ -63,16 +65,25 @@ def main() -> int:
 
     ensure_progress_snapshot(args.platform)
     progress_file = resolve_progress_path(args.platform)
+    ensure_vocab_snapshot(args.platform)
+    vocab_file = resolve_vocab_path(args.platform)
 
     if args.platform == "codex":
-        static_text = build_static_prompt(config, repo_root=str(REPO_ROOT))
+        static_text = build_static_prompt(
+            config,
+            repo_root=str(REPO_ROOT),
+            vocab_path=str(vocab_file),
+        )
         upsert_block(static_text)
         note = build_progress_note(str(progress_file))
         _emit(args.platform, note)
         return 0
 
     coaching_text = build_prompt(
-        config, repo_root=str(REPO_ROOT), progress_path=str(progress_file)
+        config,
+        repo_root=str(REPO_ROOT),
+        progress_path=str(progress_file),
+        vocab_path=str(vocab_file),
     )
     _emit(args.platform, coaching_text)
     return 0

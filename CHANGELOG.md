@@ -4,6 +4,26 @@ All notable changes to this project are recorded here.
 
 This file is updated by the release workflow via `scripts/build_changelog.py`.
 
+## v0.11.0 - 2026-04-17
+
+### Features
+- Add `vocab focus` tracking for scored coaching modes. The coach can now
+  persist `gap`, `correction`, and `upgrade` vocab entries in
+  `~/.prompt-language-coach/vocab-focus.json`, mirror the snapshot to
+  Claude/Codex/Cursor homes, and advance entries into a mastered audit
+  list after three correct uses.
+- Add CLI support for `track-vocab`, `mark-vocab-mastered`, `vocab
+  <language>`, and `vocab on|off`, alongside the new `vocabFocus`
+  config flag.
+
+### Internal
+- Prompt construction now injects compact vocab tracking and recall rules
+  only when `vocabFocus=true` and the mode is `scored-writing` or
+  `scored-speaking`, and only then loads recent active vocab entries into
+  coaching context.
+- Extend tests to cover vocab mirroring, active-entry capping, mastery
+  promotion, config normalization, and prompt gating.
+
 ## v0.10.0 - 2026-04-17
 
 ### Fixes

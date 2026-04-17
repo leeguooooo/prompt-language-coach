@@ -141,7 +141,7 @@ Restart Codex. The next prompt will show only a tiny progress note in the hook c
 Install from the Cursor plugin marketplace, or add the marketplace repo directly:
 
 1. Open **Cursor Settings → Plugins → Marketplace**
-2. Add marketplace: `leeguooooo/plugins`
+2. Add marketplace: `https://github.com/leeguooooo/plugins`
 3. Install **language-coach**
 
 Then run the setup command in Cursor's AI panel:

@@ -20,6 +20,7 @@
   "style": "teaching",
   "responseLanguage": "native",
   "enabled": true,
+  "vocabFocus": false,
   "scoringFocus": "both",
   "targetEstimate": "",
   "currentLevel": "",

@@ -103,6 +103,24 @@ def resolve_all_progress_paths() -> list[Path]:
     ]
 
 
+def resolve_vocab_path(platform: str) -> Path:
+    del platform
+    return resolve_shared_vocab_path()
+
+
+def resolve_shared_vocab_path() -> Path:
+    return Path.home() / ".prompt-language-coach" / "vocab-focus.json"
+
+
+def resolve_all_vocab_paths() -> list[Path]:
+    return [
+        resolve_shared_vocab_path(),
+        Path.home() / ".codex" / "vocab-focus.json",
+        Path.home() / ".claude" / "vocab-focus.json",
+        Path.home() / ".cursor" / "vocab-focus.json",
+    ]
+
+
 def resolve_codex_hooks_path() -> Path:
     return Path.home() / ".codex" / "hooks.json"
 
@@ -219,6 +237,97 @@ def ensure_progress_snapshot(platform: str) -> dict[str, Any]:
     return data
 
 
+def _vocab_signature(entry: dict[str, Any]) -> tuple[str, str, str, str]:
+    entry_type = str(entry.get("type", ""))
+    if entry_type == "gap":
+        return (
+            entry_type,
+            str(entry.get("native", "")),
+            str(entry.get("target", "")),
+            str(entry.get("context", "")),
+        )
+    if entry_type == "correction":
+        return (
+            entry_type,
+            str(entry.get("wrong", "")),
+            str(entry.get("right", "")),
+            str(entry.get("context", "")),
+        )
+    return (
+        entry_type,
+        str(entry.get("from", "")),
+        str(entry.get("to", "")),
+        str(entry.get("context", "")),
+    )
+
+
+def _normalize_vocab_entry(entry: dict[str, Any]) -> dict[str, Any]:
+    normalized = dict(entry)
+    normalized["masteredHits"] = max(0, min(3, int(normalized.get("masteredHits", 0) or 0)))
+    return normalized
+
+
+def _merge_vocab_records(
+    current: list[dict[str, Any]], incoming: list[dict[str, Any]]
+) -> list[dict[str, Any]]:
+    merged: dict[tuple[str, str, str, str], dict[str, Any]] = {}
+    for record in current + incoming:
+        if not isinstance(record, dict):
+            continue
+        normalized = _normalize_vocab_entry(record)
+        merged[_vocab_signature(normalized)] = normalized
+    return list(merged.values())
+
+
+def _trim_active_vocab(entry: dict[str, Any]) -> None:
+    active = [
+        _normalize_vocab_entry(item)
+        for item in entry.get("entries", [])
+        if isinstance(item, dict)
+    ]
+    mastered = [
+        _normalize_vocab_entry(item)
+        for item in entry.get("mastered", [])
+        if isinstance(item, dict)
+    ]
+    entry["entries"] = active[-20:]
+    entry["mastered"] = mastered
+
+
+def load_vocab_data(platform: str) -> dict[str, Any]:
+    del platform
+    merged: dict[str, Any] = {}
+    for path in resolve_all_vocab_paths():
+        payload = _load_progress(path)
+        for language, incoming_entry in payload.items():
+            if not isinstance(incoming_entry, dict):
+                continue
+            entry = merged.setdefault(language, {"entries": [], "mastered": []})
+            entry["entries"] = _merge_vocab_records(
+                entry.get("entries", []),
+                incoming_entry.get("entries", []),
+            )
+            entry["mastered"] = _merge_vocab_records(
+                entry.get("mastered", []),
+                incoming_entry.get("mastered", []),
+            )
+            _trim_active_vocab(entry)
+    return merged
+
+
+def save_vocab_data(platform: str, data: dict[str, Any]) -> None:
+    del platform
+    for path in resolve_all_vocab_paths():
+        _save_progress(path, data)
+
+
+def ensure_vocab_snapshot(platform: str) -> dict[str, Any]:
+    data = load_vocab_data(platform)
+    if data:
+        save_vocab_data(platform, data)
+    return data
+
+
 def save_config_data(platform: str, config: dict[str, Any]) -> None:
     del platform
     for path in resolve_all_config_paths():
@@ -293,6 +402,137 @@ def cmd_progress(args: argparse.Namespace) -> int:
     return 0
 
 
+def _build_vocab_record(args: argparse.Namespace, today: str) -> tuple[dict[str, Any], str]:
+    context = getattr(args, "context", "") or ""
+    note = getattr(args, "note", "") or ""
+    if args.entry_type == "gap":
+        record = {
+            "date": today,
+            "type": "gap",
+            "native": args.native,
+            "target": args.target,
+            "masteredHits": 0,
+        }
+        label = f"{args.native} -> {args.target}"
+    elif args.entry_type == "correction":
+        record = {
+            "date": today,
+            "type": "correction",
+            "wrong": args.wrong,
+            "right": args.right,
+            "masteredHits": 0,
+        }
+        label = f"{args.wrong} -> {args.right}"
+    else:
+        record = {
+            "date": today,
+            "type": "upgrade",
+            "from": args.from_word,
+            "to": args.to_word,
+            "masteredHits": 0,
+        }
+        label = f"{args.from_word} -> {args.to_word}"
+    if context:
+        record["context"] = context
+    if note:
+        record["note"] = note
+    return record, label
+
+
+def cmd_track_vocab(args: argparse.Namespace) -> int:
+    data = load_vocab_data(args.platform)
+    today = datetime.date.today().isoformat()
+    entry = data.setdefault(args.language, {"entries": [], "mastered": []})
+    record, label = _build_vocab_record(args, today)
+    entry["entries"].append(record)
+    _trim_active_vocab(entry)
+    save_vocab_data(args.platform, data)
+    print(f"Recorded: {args.language} {args.entry_type} {label} on {today}")
+    return 0
+
+
+def _entry_identifier(entry: dict[str, Any]) -> str:
+    if entry.get("type") == "gap":
+        return str(entry.get("target", ""))
+    if entry.get("type") == "correction":
+        return str(entry.get("right", ""))
+    return str(entry.get("to", ""))
+
+
+def cmd_mark_vocab_mastered(args: argparse.Namespace) -> int:
+    data = load_vocab_data(args.platform)
+    entry = data.get(args.language)
+    if not isinstance(entry, dict):
+        print(f"No active vocab focus found for {args.language}.")
+        return 0
+
+    active = [
+        _normalize_vocab_entry(item)
+        for item in entry.get("entries", [])
+        if isinstance(item, dict)
+    ]
+    for index in range(len(active) - 1, -1, -1):
+        item = active[index]
+        if _entry_identifier(item) != args.identifier:
+            continue
+        item["masteredHits"] = min(3, item.get("masteredHits", 0) + 1)
+        if item["masteredHits"] >= 3:
+            active.pop(index)
+            mastered = [
+                _normalize_vocab_entry(existing)
+                for existing in entry.get("mastered", [])
+                if isinstance(existing, dict)
+            ]
+            mastered.append(item)
+            entry["mastered"] = mastered
+            entry["entries"] = active
+            save_vocab_data(args.platform, data)
+            print(f"Mastered: {args.language} {args.identifier}")
+            return 0
+        active[index] = item
+        entry["entries"] = active
+        save_vocab_data(args.platform, data)
+        print(f"Mastered hit: {args.language} {args.identifier} ({item['masteredHits']}/3)")
+        return 0
+
+    print(f"No active vocab focus found for {args.language}: {args.identifier}")
+    return 0
+
+
+def _format_vocab_pair(entry: dict[str, Any]) -> str:
+    entry_type = entry.get("type")
+    if entry_type == "gap":
+        return f"{entry.get('native', '-')} -> {entry.get('target', '-')}"
+    if entry_type == "correction":
+        return f"{entry.get('wrong', '-')} -> {entry.get('right', '-')}"
+    return f"{entry.get('from', '-')} -> {entry.get('to', '-')}"
+
+
+def cmd_vocab(args: argparse.Namespace) -> int:
+    data = ensure_vocab_snapshot(args.platform)
+    filter_language = getattr(args, "value", None)
+    languages = [filter_language] if filter_language else sorted(data.keys())
+    if not languages or (filter_language and filter_language not in data):
+        lang_label = filter_language or "any language"
+        print(f"No vocab focus data found for {lang_label}.")
+        return 0
+
+    for language in languages:
+        entry = data.get(language, {})
+        active = entry.get("entries", [])
+        print(
+            f"{language} vocab focus (active {len(active)} entr{'y' if len(active) == 1 else 'ies'}):"
+        )
+        if active:
+            for item in active[-5:]:
+                note = f"  [{item['note']}]" if item.get("note") else ""
+                print(f"  {item['date']}  {item['type']}  {_format_vocab_pair(item)}{note}")
+        else:
+            print("  (no active entries)")
+        print()
+    return 0
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Manage language coach config for Claude or Codex."
@@ -349,6 +589,25 @@ def parse_args() -> argparse.Namespace:
 
     child = subparsers.add_parser("progress", help="Show recent estimate history.")
     child.add_argument("language", nargs="?", default=None, help="Optional language to filter by")
+
+    child = subparsers.add_parser("track-vocab", help="Record a vocab focus entry.")
+    child.add_argument("language", help="Language name, e.g. English")
+    child.add_argument("entry_type", choices=("gap", "correction", "upgrade"))
+    child.add_argument("--native")
+    child.add_argument("--target")
+    child.add_argument("--wrong")
+    child.add_argument("--right")
+    child.add_argument("--from", dest="from_word")
+    child.add_argument("--to", dest="to_word")
+    child.add_argument("--context", default="")
+    child.add_argument("--note", default="")
+
+    child = subparsers.add_parser("mark-vocab-mastered", help="Advance mastery for one vocab focus entry.")
+    child.add_argument("language", help="Language name, e.g. English")
+    child.add_argument("identifier", help="target/right/to value")
+
+    child = subparsers.add_parser("vocab", help="Show active vocab focus or toggle vocab focus.")
+    child.add_argument("value", nargs="?", default=None, help="Optional language, or on/off to toggle the feature")
 
     subparsers.add_parser("progress-path", help="Print the progress file path for the current platform.")
     for name in ("install-hook", "remove-hook", "hook-status"):
@@ -488,6 +747,9 @@ def apply_command(
     if args.command == "level":
         config["currentLevel"] = args.value
         return f"Current level updated to: {args.value}"
+    if args.command == "vocab" and args.value in {"on", "off"}:
+        config["vocabFocus"] = args.value == "on"
+        return f"Vocab focus {'enabled' if config['vocabFocus'] else 'disabled'}."
     if args.command == "target-add":
         if path is not None:
             current_config = load_config(path)
@@ -531,6 +793,7 @@ def format_status(
         f"Mode:              {config['mode']}",
         f"Style:             {config['style']}",
         f"Response in:       {config['responseLanguage']}",
+        f"Vocab focus:       {'on' if config['vocabFocus'] else 'off'}",
         f"Scoring focus:     {config['scoringFocus']}",
         f"Target estimate:   {config['targetEstimate'] or '-'}",
         f"Current level:     {config['currentLevel'] or '-'}",
@@ -601,23 +864,28 @@ def sync_claude_md(config: dict[str, Any], platform: str) -> None:
 
 
 def sync_codex_agents_md(config: dict[str, Any]) -> None:
-    """Mirror the static coaching block into ~/.codex/AGENTS.md.
-
-    Codex reads this file on every turn and injects it as hidden user
-    instructions — the model sees it, but it is not rendered in the TUI
-    transcript (unlike UserPromptSubmit hook ``additionalContext``).
-
-    Only active when ~/.codex already exists, so users who never installed
-    Codex don't get a stray file created for them.
-    """
     codex_home = Path.home() / ".codex"
     if not codex_home.exists():
         return
     if not config.get("enabled", True):
         remove_codex_agents_md_block()
         return
-    static_text = build_static_prompt(config, repo_root=str(REPO_ROOT))
+    static_text = build_static_prompt(
+        config,
+        repo_root=str(REPO_ROOT),
+        vocab_path=str(resolve_vocab_path("codex")),
+    )
     upsert_codex_agents_md_block(static_text)
+
+
+def _should_sync_runtime_files(args: argparse.Namespace, path: Path) -> bool:
+    if not args.config:
+        return True
+    expected = {
+        resolve_default_config(args.platform).expanduser(),
+        resolve_shared_config_path().expanduser(),
+    }
+    return path.expanduser() in expected
 
 
 def main() -> int:
@@ -625,8 +893,14 @@ def main() -> int:
 
     if args.command in {"record-band", "record-estimate", "track-estimate"}:
         return cmd_record_estimate(args)
+    if args.command == "track-vocab":
+        return cmd_track_vocab(args)
+    if args.command == "mark-vocab-mastered":
+        return cmd_mark_vocab_mastered(args)
     if args.command == "progress":
         return cmd_progress(args)
+    if args.command == "vocab" and getattr(args, "value", None) not in {"on", "off"}:
+        return cmd_vocab(args)
     if args.command == "progress-path":
         print(resolve_progress_path(args.platform))
         return 0
@@ -687,8 +961,9 @@ def main() -> int:
         save_config(path, config)
     else:
         save_config_data(args.platform, config)
-    sync_claude_md(config, args.platform)
-    sync_codex_agents_md(config)
+    if _should_sync_runtime_files(args, path):
+        sync_claude_md(config, args.platform)
+        sync_codex_agents_md(config)
     if message is not None:
         print(message)
     print(f"Config file: {path}")

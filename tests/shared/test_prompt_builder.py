@@ -1,8 +1,9 @@
 import json
+import tempfile
 import unittest
 from pathlib import Path
 
-from shared.prompts.build_prompt import build_prompt
+from shared.prompts.build_prompt import build_prompt, build_static_prompt, build_vocab_note
 
 
 FIXTURES = Path("tests/fixtures")
@@ -124,6 +125,121 @@ class PromptBuilderTests(unittest.TestCase):
         self.assertIn("╭─ 📚 Scored Writing Coaching ─", prompt)
         self.assertIn("Do not start above 5.5 on a first scored sample", prompt)
         self.assertIn("track-estimate", prompt)
+
+    def test_vocab_focus_prompt_rules_render_only_when_flag_enabled(self) -> None:
+        config = json.loads(
+            (FIXTURES / "config_ielts_writing.json").read_text(encoding="utf-8")
+        )
+        config["vocabFocus"] = True
+
+        prompt = build_static_prompt(config, repo_root="/tmp/repo")
+
+        self.assertIn("Vocab focus:", prompt)
+        self.assertIn("track-vocab", prompt)
+        self.assertIn('Focus word: you reached for 吐槽 again', prompt)
+        self.assertIn("mark-vocab-mastered", prompt)
+        self.assertIn("Skip upgrade when the message was 100% target language.", prompt)
+
+        config["vocabFocus"] = False
+        prompt = build_static_prompt(config, repo_root="/tmp/repo")
+        self.assertNotIn("Vocab focus:", prompt)
+        self.assertNotIn("track-vocab", prompt)
+        self.assertNotIn("mark-vocab-mastered", prompt)
+
+    def test_vocab_focus_requires_scored_mode(self) -> None:
+        config = json.loads(
+            (FIXTURES / "config_ielts_writing.json").read_text(encoding="utf-8")
+        )
+        config["vocabFocus"] = True
+        config["mode"] = "everyday"
+        config["goal"] = "everyday"
+
+        prompt = build_static_prompt(config, repo_root="/tmp/repo")
+
+        self.assertNotIn("Vocab focus:", prompt)
+        self.assertNotIn("track-vocab", prompt)
+        self.assertNotIn("mark-vocab-mastered", prompt)
+
+    def test_build_vocab_note_lists_recent_active_entries(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            vocab_path = Path(tmp) / "vocab-focus.json"
+            vocab_path.write_text(
+                json.dumps(
+                    {
+                        "English": {
+                            "entries": [
+                                {
+                                    "date": "2026-04-17",
+                                    "type": "gap",
+                                    "native": "吐槽",
+                                    "target": "vent about",
+                                    "context": "I want to 吐槽 this bug",
+                                    "note": "vent = express frustration",
+                                    "masteredHits": 0,
+                                },
+                                {
+                                    "date": "2026-04-17",
+                                    "type": "correction",
+                                    "wrong": "effect",
+                                    "right": "affect",
+                                    "context": "the bug effects perf",
+                                    "note": "affect = verb",
+                                    "masteredHits": 0,
+                                },
+                            ]
+                        }
+                    },
+                    ensure_ascii=False,
+                ),
+                encoding="utf-8",
+            )
+
+            note = build_vocab_note(str(vocab_path))
+
+        self.assertIn("Active vocab focus:", note)
+        self.assertIn("English gap: 吐槽 -> vent about", note)
+        self.assertIn("English correction: effect -> affect", note)
+
+    def test_vocab_note_is_only_included_when_feature_is_active(self) -> None:
+        config = json.loads(
+            (FIXTURES / "config_ielts_writing.json").read_text(encoding="utf-8")
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            vocab_path = Path(tmp) / "vocab-focus.json"
+            vocab_path.write_text(
+                json.dumps(
+                    {
+                        "English": {
+                            "entries": [
+                                {
+                                    "date": "2026-04-17",
+                                    "type": "gap",
+                                    "native": "吐槽",
+                                    "target": "vent about",
+                                    "masteredHits": 0,
+                                }
+                            ]
+                        }
+                    },
+                    ensure_ascii=False,
+                ),
+                encoding="utf-8",
+            )
+
+            config["vocabFocus"] = False
+            prompt = build_prompt(config, vocab_path=str(vocab_path))
+            self.assertNotIn("Active vocab focus:", prompt)
+
+            config["vocabFocus"] = True
+            config["mode"] = "everyday"
+            config["goal"] = "everyday"
+            prompt = build_prompt(config, vocab_path=str(vocab_path))
+            self.assertNotIn("Active vocab focus:", prompt)
+
+            config["mode"] = "scored-writing"
+            config["goal"] = "scored"
+            prompt = build_prompt(config, vocab_path=str(vocab_path))
+            self.assertIn("Active vocab focus:", prompt)
 
     def test_ielts_writing_prompt_penalizes_native_language_fallback(self) -> None:
         config = json.loads(

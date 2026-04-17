@@ -9,6 +9,12 @@ from shared.pedagogy.modes import guidance_for_mode, sections_for_mode
 from shared.proficiency import estimate_sort_value, scale_for_language
 
 
+def _vocab_focus_active(config: dict[str, Any]) -> bool:
+    return bool(config.get("vocabFocus")) and canonicalize_mode(
+        config.get("mode"), default="everyday"
+    ) in {"scored-writing", "scored-speaking"}
+
+
 def _scoring_guidance(target_language: str, mode: str) -> list[str]:
     normalized = canonicalize_mode(mode, default="everyday")
     if normalized not in {"scored-writing", "scored-speaking"}:
@@ -25,7 +31,6 @@ def _sections_for_prompt(target_language: str, mode: str) -> list[str]:
 
 
 def _progress_note(progress_path: str) -> Optional[str]:
-    """Return a brief progress note string, or None if no data is available."""
     path = Path(progress_path)
     if not path.exists():
         return None
@@ -72,6 +77,36 @@ def _progress_note(progress_path: str) -> Optional[str]:
     return "\n".join(lines)
 
 
+def _vocab_note(vocab_path: str) -> Optional[str]:
+    path = Path(vocab_path)
+    if not path.exists():
+        return None
+    try:
+        data: dict[str, Any] = json.loads(path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        return None
+    if not data:
+        return None
+
+    items: list[str] = []
+    for language, payload in data.items():
+        if not isinstance(payload, dict):
+            continue
+        for entry in payload.get("entries", []):
+            if not isinstance(entry, dict):
+                continue
+            entry_type = entry.get("type")
+            if entry_type == "gap" and entry.get("native") and entry.get("target"):
+                items.append(f"- {language} gap: {entry['native']} -> {entry['target']}")
+            elif entry_type == "correction" and entry.get("wrong") and entry.get("right"):
+                items.append(f"- {language} correction: {entry['wrong']} -> {entry['right']}")
+            elif entry_type == "upgrade" and entry.get("from") and entry.get("to"):
+                items.append(f"- {language} upgrade: {entry['from']} -> {entry['to']}")
+    if not items:
+        return None
+    return "\n".join(["Active vocab focus:"] + items[-10:])
+
+
 def _box_title_for_mode(mode: str, detected_language: str | None = None) -> str:
     normalized = canonicalize_mode(mode, default="everyday")
     if detected_language is not None:
@@ -90,7 +125,6 @@ def _box_title_for_mode(mode: str, detected_language: str | None = None) -> str:
 
 
 def _native_only_box_instruction(target_language: str) -> list[str]:
-    """Compact double-line box for pure native-language input (translation only)."""
     return [
         "Native-language-only box (use this when the user writes entirely in their native language):",
         f"- Use '╔══ 🌐 {target_language} ══' as the opening line.",
@@ -166,18 +200,24 @@ def _target_summary(
 
 
 def build_progress_note(progress_path: Optional[str]) -> str:
-    """Return the short dynamic progress note, or '' if unavailable."""
     if progress_path is None:
         return ""
     note = _progress_note(progress_path)
     return note or ""
 
 
+def build_vocab_note(vocab_path: Optional[str]) -> str:
+    if vocab_path is None:
+        return ""
+    note = _vocab_note(vocab_path)
+    return note or ""
+
+
 def build_static_prompt(
     config: dict[str, Any],
     repo_root: Optional[str] = None,
+    vocab_path: Optional[str] = None,
 ) -> str:
-    """The long static coaching instructions (no progress note)."""
     targets = _target_profiles(config)
     if targets:
         base = [
@@ -252,7 +292,11 @@ def build_static_prompt(
             ]
         )
 
-    parts: list[str] = list(base)
+    parts: list[str] = []
+    vocab_note = build_vocab_note(vocab_path) if _vocab_focus_active(config) else ""
+    if vocab_note:
+        parts.append(vocab_note)
+    parts.extend(base)
     parts.extend(
         [
             f"Deliver all coaching feedback in {config['nativeLanguage']}.",
@@ -280,6 +324,13 @@ def build_static_prompt(
             'Use the exact detected language name and the exact estimate string (e.g. "6.0", "N5", "B1").\n'
             "Skip the command for everyday mode, review mode, or pure native-language input."
         )
+        if _vocab_focus_active(config):
+            parts.append(
+                "Vocab focus:\n"
+                "- After the box, silently run `track-vocab` for each gap/correction/upgrade by priority. Always track gaps. Skip upgrade when the message was 100% target language.\n"
+                "- Before `╰`, show `Focus word: ...` only if this message nearly repeats an active gap/correction. Example gap: `Focus word: you reached for 吐槽 again — try \"vent about\" / \"rant about\"`. Example correction: `Focus word: watch out — you wrote \"effect\" again. Correct: \"affect\" (verb)`.\n"
+                "- If an active gap/correction is used correctly with no fallback/correction, silently run `mark-vocab-mastered`."
+            )
 
     return "\n".join(parts)
 
@@ -288,9 +339,15 @@ def build_prompt(
     config: dict[str, Any],
     repo_root: Optional[str] = None,
     progress_path: Optional[str] = None,
+    vocab_path: Optional[str] = None,
 ) -> str:
     static_text = build_static_prompt(config, repo_root=repo_root)
     note = build_progress_note(progress_path)
+    vocab_note = build_vocab_note(vocab_path) if _vocab_focus_active(config) else ""
+    if note and vocab_note:
+        return note + "\n" + vocab_note + "\n" + static_text
     if note:
         return note + "\n" + static_text
+    if vocab_note:
+        return vocab_note + "\n" + static_text
     return static_text

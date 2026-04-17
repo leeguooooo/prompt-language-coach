@@ -141,7 +141,7 @@ python3 ~/.codex/.tmp/marketplaces/prompt-language-coach/plugins/prompt-language
 通过 Cursor 插件市场安装，或直接添加插件库：
 
 1. 打开 **Cursor Settings → Plugins → Marketplace**
-2. 添加插件库：`leeguooooo/plugins`
+2. 添加插件库：`https://github.com/leeguooooo/plugins`
 3. 安装 **language-coach**
 
 然后在 Cursor 的 AI 面板中运行设置命令：

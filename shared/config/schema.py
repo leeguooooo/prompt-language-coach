@@ -31,6 +31,7 @@ TARGET_OVERRIDE_KEYS = (
     "mode",
     "style",
     "responseLanguage",
+    "vocabFocus",
     "scoringFocus",
     "targetEstimate",
     "currentLevel",
@@ -117,5 +118,6 @@ def normalize_config(raw: dict[str, Any], defaults: dict[str, Any]) -> dict[str,
     data = _normalize_goal_mode_fields(data, defaults)
     data["targets"] = _normalize_targets(migrated.get("targets"), data, defaults)
     data["enabled"] = bool(data["enabled"])
+    data["vocabFocus"] = bool(data["vocabFocus"])
     data["version"] = 1
     return data

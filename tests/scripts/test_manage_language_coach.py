@@ -477,6 +477,209 @@ class ManageLanguageCoachTests(unittest.TestCase):
             self.assertEqual(migrated["English"]["currentEstimate"], "5.5")
             self.assertEqual(migrated["English"]["estimates"][0]["estimate"], "5.5")
 
+    def test_track_vocab_gap_mirrors_across_platform_paths(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            home = Path(tmp)
+
+            result = subprocess.run(
+                [
+                    "python3",
+                    "scripts/manage_language_coach.py",
+                    "--platform",
+                    "codex",
+                    "track-vocab",
+                    "English",
+                    "gap",
+                    "--native",
+                    "吐槽",
+                    "--target",
+                    "vent",
+                    "--context",
+                    "I want to 吐槽 this bug",
+                    "--note",
+                    "vent = express frustration",
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+                env={"HOME": str(home)},
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            for vocab_path in (
+                home / ".prompt-language-coach" / "vocab-focus.json",
+                home / ".codex" / "vocab-focus.json",
+                home / ".claude" / "vocab-focus.json",
+                home / ".cursor" / "vocab-focus.json",
+            ):
+                self.assertTrue(vocab_path.exists(), str(vocab_path))
+                payload = json.loads(vocab_path.read_text(encoding="utf-8"))
+                entry = payload["English"]["entries"][0]
+                self.assertEqual(entry["type"], "gap")
+                self.assertEqual(entry["native"], "吐槽")
+                self.assertEqual(entry["target"], "vent")
+                self.assertEqual(entry["masteredHits"], 0)
+
+    def test_track_vocab_caps_active_entries_at_twenty(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            home = Path(tmp)
+
+            for index in range(21):
+                result = subprocess.run(
+                    [
+                        "python3",
+                        "scripts/manage_language_coach.py",
+                        "--platform",
+                        "codex",
+                        "track-vocab",
+                        "English",
+                        "correction",
+                        "--wrong",
+                        f"wrong-{index}",
+                        "--right",
+                        f"right-{index}",
+                    ],
+                    check=False,
+                    capture_output=True,
+                    text=True,
+                    env={"HOME": str(home)},
+                )
+                self.assertEqual(result.returncode, 0, result.stderr)
+
+            payload = json.loads(
+                (home / ".prompt-language-coach" / "vocab-focus.json").read_text(
+                    encoding="utf-8"
+                )
+            )
+            entries = payload["English"]["entries"]
+            self.assertEqual(len(entries), 20)
+            rights = [entry["right"] for entry in entries]
+            self.assertNotIn("right-0", rights)
+            self.assertEqual(rights[-1], "right-20")
+
+    def test_mark_vocab_mastered_moves_entry_after_three_hits(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            home = Path(tmp)
+
+            seed = subprocess.run(
+                [
+                    "python3",
+                    "scripts/manage_language_coach.py",
+                    "--platform",
+                    "codex",
+                    "track-vocab",
+                    "English",
+                    "upgrade",
+                    "--from",
+                    "good",
+                    "--to",
+                    "compelling",
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+                env={"HOME": str(home)},
+            )
+            self.assertEqual(seed.returncode, 0, seed.stderr)
+
+            for hit in range(3):
+                result = subprocess.run(
+                    [
+                        "python3",
+                        "scripts/manage_language_coach.py",
+                        "--platform",
+                        "codex",
+                        "mark-vocab-mastered",
+                        "English",
+                        "compelling",
+                    ],
+                    check=False,
+                    capture_output=True,
+                    text=True,
+                    env={"HOME": str(home)},
+                )
+                self.assertEqual(result.returncode, 0, result.stderr)
+                payload = json.loads(
+                    (home / ".prompt-language-coach" / "vocab-focus.json").read_text(
+                        encoding="utf-8"
+                    )
+                )
+                if hit < 2:
+                    self.assertEqual(payload["English"]["entries"][0]["masteredHits"], hit + 1)
+                else:
+                    self.assertEqual(payload["English"]["entries"], [])
+                    self.assertEqual(payload["English"]["mastered"][0]["to"], "compelling")
+                    self.assertEqual(payload["English"]["mastered"][0]["masteredHits"], 3)
+
+    def test_vocab_command_prints_entries_and_toggles_flag(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            home = Path(tmp)
+
+            seed = subprocess.run(
+                [
+                    "python3",
+                    "scripts/manage_language_coach.py",
+                    "--platform",
+                    "codex",
+                    "track-vocab",
+                    "English",
+                    "correction",
+                    "--wrong",
+                    "effect",
+                    "--right",
+                    "affect",
+                    "--note",
+                    "affect = verb",
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+                env={"HOME": str(home)},
+            )
+            self.assertEqual(seed.returncode, 0, seed.stderr)
+
+            result = subprocess.run(
+                [
+                    "python3",
+                    "scripts/manage_language_coach.py",
+                    "--platform",
+                    "codex",
+                    "vocab",
+                    "English",
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+                env={"HOME": str(home)},
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn("English vocab focus", result.stdout)
+            self.assertIn("effect -> affect", result.stdout)
+
+            toggle = subprocess.run(
+                [
+                    "python3",
+                    "scripts/manage_language_coach.py",
+                    "--platform",
+                    "codex",
+                    "vocab",
+                    "on",
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+                env={"HOME": str(home)},
+            )
+            self.assertEqual(toggle.returncode, 0, toggle.stderr)
+
+            config = json.loads(
+                (home / ".prompt-language-coach" / "language-coach.json").read_text(
+                    encoding="utf-8"
+                )
+            )
+            self.assertTrue(config["vocabFocus"])
+
 
 if __name__ == "__main__":
     unittest.main()
