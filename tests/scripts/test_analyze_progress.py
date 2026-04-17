@@ -166,6 +166,21 @@ class TestAnalyzeLanguage(TestCase):
         self.assertTrue(math.isclose(result["total_gain"], 1.0, abs_tol=1e-9))
         self.assertEqual(result["scale"], "jlpt")
 
+    def test_mixed_scale_entries_still_count_as_sessions(self):
+        entry = {
+            "scale": "ielts",
+            "estimates": [
+                {"date": "2026-04-15", "estimate": "5.5"},
+                {"date": "2026-04-16", "estimate": "B1"},
+                {"date": "2026-04-17", "estimate": "A2"},
+            ],
+        }
+        result = analyze_language("English", entry)
+        self.assertEqual(result["sessions"], 3)
+        self.assertEqual(result["practice_days"], 3)
+        dates_in_history = [h["date"] for h in result["history"]]
+        self.assertEqual(dates_in_history, ["2026-04-15", "2026-04-16", "2026-04-17"])
+
 
 # ---------------------------------------------------------------------------
 # _format_report

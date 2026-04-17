@@ -12,6 +12,16 @@ if str(REPO_ROOT) not in sys.path:
 
 from scripts.manage_language_coach import load_progress_data, resolve_progress_path as resolve_progress_path
 from shared.proficiency import estimate_sort_value, normalize_estimate, scale_for_language
+from shared.proficiency.scales import SCALES
+
+
+def _is_parseable_under_any_scale(raw: str | None) -> bool:
+    if raw in (None, ""):
+        return False
+    for scale in SCALES.values():
+        if estimate_sort_value(raw, scale=scale) is not None:
+            return True
+    return False
 
 
 def parse_args() -> argparse.Namespace:
@@ -50,42 +60,57 @@ def analyze_language(language: str, entry: dict[str, Any]) -> dict[str, Any]:
     if not estimates:
         return {"language": language, "sessions": 0, "status": "no data", "scale": scale.key}
 
-    # Parse all valid entries; carry optional text field
+    # All dated entries (any scale) — used for session / practice-day counts + history display.
+    dated_all: list[tuple[date, str, str]] = []
+    # Entries parseable under the declared scale — used for slope / momentum / projection.
     dated: list[tuple[date, float, str, str]] = []
     for e in estimates:
         d = _parse_date(e.get("date", ""))
+        if d is None:
+            continue
         raw_estimate = e.get("estimate")
         if raw_estimate is None:
             raw_estimate = e.get("band", "")
-        band_display = normalize_estimate(raw_estimate, scale=scale) or raw_estimate
+        if not _is_parseable_under_any_scale(raw_estimate):
+            continue
+        band_display = normalize_estimate(raw_estimate, scale=scale) or str(raw_estimate)
+        dated_all.append((d, band_display, e.get("text", "")))
         b = estimate_sort_value(raw_estimate, scale=scale)
-        if d is not None and b is not None:
+        if b is not None:
             dated.append((d, b, band_display, e.get("text", "")))
 
-    if not dated:
+    if not dated_all:
         return {"language": language, "sessions": 0, "status": "no data", "scale": scale.key}
 
+    dated_all.sort(key=lambda x: x[0])
     dated.sort(key=lambda x: x[0])
-    sessions = len(dated)
-    first_date, first_band_value, first_band, _ = dated[0]
-    last_date, last_band_value, last_band, _ = dated[-1]
+    sessions = len(dated_all)
     today = date.today()
-    days_active = (last_date - first_date).days + 1
-    days_since_last = (today - last_date).days
+    first_all_date = dated_all[0][0]
+    last_all_date = dated_all[-1][0]
+    days_active = (last_all_date - first_all_date).days + 1
+    days_since_last = (today - last_all_date).days
 
-    # Unique practice days
-    practice_days = len({d for d, _, _display, _t in dated})
+    if dated:
+        first_date, first_band_value, first_band, _ = dated[0]
+        last_date, last_band_value, last_band, _ = dated[-1]
+    else:
+        first_date = last_date = last_all_date
+        first_band_value = last_band_value = 0.0
+        first_band = last_band = dated_all[-1][1]
+
+    # Unique practice days counted across ALL entries, not only parseable ones.
+    practice_days = len({d for d, _display, _t in dated_all})
     consistency_pct = round(practice_days / max(days_active, 1) * 100)
 
-    # Best / worst session
-    best_band = max(b for _, b, _display, _t in dated)
+    # Best / worst session — only across parseable entries.
+    best_band = max((b for _, b, _display, _t in dated), default=0.0)
 
-    # Trend: slope in estimate-steps/day, convert to estimate-steps/week
+    # Trend: slope in estimate-steps/day, convert to estimate-steps/week.
     indexed = [(i, b) for i, (_, b, _display, _t) in enumerate(dated)]
-    slope_per_session = _linear_trend(indexed)
-    # Average time between sessions
-    if sessions > 1 and days_active > 0:
-        sessions_per_week = sessions / (days_active / 7)
+    slope_per_session = _linear_trend(indexed) if len(dated) >= 2 else None
+    if len(dated) > 1 and days_active > 0:
+        sessions_per_week = len(dated) / (days_active / 7)
         band_per_week = (
             round(slope_per_session * sessions_per_week, 3)
             if slope_per_session is not None
@@ -94,22 +119,20 @@ def analyze_language(language: str, entry: dict[str, Any]) -> dict[str, Any]:
     else:
         band_per_week = None
 
-    # Projected band at target (6.5 default) — weeks needed
     target_band = 6.5
     projected_weeks: int | None = None
     if scale.key == "ielts" and band_per_week and band_per_week > 0 and last_band_value < target_band:
         projected_weeks = int((target_band - last_band_value) / band_per_week)
 
-    # Streak: consecutive days ending on last practice day
-    date_set = {d for d, _, _display, _t in dated}
+    # Streak: consecutive days ending on last practice day (any scale).
+    date_set = {d for d, _display, _t in dated_all}
     streak = 0
-    cursor = last_date
+    cursor = last_all_date
     while cursor in date_set:
         streak += 1
         cursor -= timedelta(days=1)
 
-    # Recent momentum: last 3 vs first 3 sessions
-    if sessions >= 6:
+    if len(dated) >= 6:
         early_avg = sum(b for _, b, _display, _t in dated[:3]) / 3
         recent_avg = sum(b for _, b, _display, _t in dated[-3:]) / 3
         momentum = round(recent_avg - early_avg, 2)
@@ -134,7 +157,7 @@ def analyze_language(language: str, entry: dict[str, Any]) -> dict[str, Any]:
         "momentum": momentum,
         "projected_weeks_to_target": projected_weeks,
         "target_band": target_band,
-        "history": [{"date": str(d), "estimate": display, "text": t} for d, _sort, display, t in dated],
+        "history": [{"date": str(d), "estimate": display, "text": t} for d, display, t in dated_all],
     }
 
 

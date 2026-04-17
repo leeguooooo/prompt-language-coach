@@ -4,6 +4,19 @@ All notable changes to this project are recorded here.
 
 This file is updated by the release workflow via `scripts/build_changelog.py`.
 
+## v0.11.4 - 2026-04-17
+
+### Fixes
+- `analyze_progress` was dropping history entries whose recorded
+  estimate did not parse under the language's declared scale (e.g.
+  `B1` in an English file marked `scale=ielts`), so a user with 3
+  recorded sessions across 3 different days saw `1 session over 1
+  day` and all but one entry vanished from the history list. Session
+  and practice-day counts now include every dated, non-garbage
+  estimate (parseable under any known scale); slope/momentum still
+  only consume entries that parse cleanly under the declared scale,
+  so cross-scale mixing never corrupts the velocity math.
+
 ## v0.11.3 - 2026-04-17
 
 ### Fixes
