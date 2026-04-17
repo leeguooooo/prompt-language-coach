@@ -112,6 +112,17 @@ $language-coach setup
 
 The setup flow writes `~/.codex/language-coach.json` and installs the Codex `UserPromptSubmit` hook automatically.
 
+#### Upgrading from 0.8.x on Codex
+
+0.9.0 changes where the coaching instructions live so they stop showing up as a visible "hook context:" block every turn. After pulling the new release, re-run the bundle installer so Codex picks up the updated hook and seeds `~/.codex/AGENTS.md`:
+
+```bash
+git -C ~/.codex/.tmp/marketplaces/prompt-language-coach pull --ff-only
+python3 ~/.codex/.tmp/marketplaces/prompt-language-coach/plugins/prompt-language-coach/scripts/install_codex_plugin.py
+```
+
+Restart Codex. The next prompt will show only a tiny progress note in the hook context cell; the full teaching rules are loaded silently from `~/.codex/AGENTS.md`. A one-time backup is saved beside it as `AGENTS.md.backup-prompt-language-coach.*` the first time the file is touched.
+
 ### Claude Code
 
 **Prerequisites:** `python3`

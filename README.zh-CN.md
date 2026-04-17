@@ -112,6 +112,17 @@ $language-coach setup
 
 设置流程会写入 `~/.codex/language-coach.json`，并自动安装 Codex 的 `UserPromptSubmit` hook。
 
+#### 从 0.8.x 升级到 0.9.0（Codex 用户）
+
+0.9.0 把教学指令从 hook 的 `additionalContext`（Codex 会在会话里显示成可见的 "hook context:" 文本块）改成写入 `~/.codex/AGENTS.md` 的 marker 块（Codex 每轮静默读入）。拉到新版后请重新跑一次 bundle 安装脚本，让 Codex 用上新的 hook 并 seed AGENTS.md：
+
+```bash
+git -C ~/.codex/.tmp/marketplaces/prompt-language-coach pull --ff-only
+python3 ~/.codex/.tmp/marketplaces/prompt-language-coach/plugins/prompt-language-coach/scripts/install_codex_plugin.py
+```
+
+重启 Codex。下一轮开始 hook context 只剩一行 progress note，完整教学规则从 `~/.codex/AGENTS.md` 静默加载。第一次改动 AGENTS.md 时会在旁边留一份 `AGENTS.md.backup-prompt-language-coach.*` 备份，回滚随时可用。
+
 ### Claude Code
 
 **前置条件：** `python3`
