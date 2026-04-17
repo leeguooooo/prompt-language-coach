@@ -36,6 +36,7 @@ Prompt Language Coach 原生支持 **Codex**、**Claude Code** 和 **Cursor**。
 - **常驻辅导** —— 每条 prompt 都自动变成一次语言训练
 - **任意语言对** —— 不局限于英语学习
 - **需要时可切到 IELTS 深度模式** —— 从轻量纠错升级到考试导向训练
+- **词汇焦点追踪** —— 自动记录你用母语代替目标语（`gap`）、被纠正（`correction`）、被升级表达（`upgrade`）的词，连续 3 次用对即晋升为已掌握
 
 | 平台 | 原生接入方式 | 状态 |
 | --- | --- | --- |
@@ -227,6 +228,11 @@ python3 ~/.cursor/extensions/<你的 cursor 插件路径>/scripts/manage_languag
 | `/language-coach on` | 恢复辅导 |
 | `/language-coach progress` | 显示所有语言的估计历史 |
 | `/language-coach progress <lang>` | 显示指定语言的估计历史 |
+| `/language-coach vocab on` | 开启词汇焦点追踪 |
+| `/language-coach vocab off` | 关闭词汇焦点追踪 |
+| `/language-coach vocab [<lang>]` | 查看当前活跃词汇条目（全部或指定语言） |
+| `/language-coach track-vocab` | 手动添加词汇条目 |
+| `/language-coach mark-vocab-mastered` | 将词汇条目标记为已掌握 |
 
 ---
 

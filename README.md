@@ -36,6 +36,7 @@ Why people install it:
 - **Always-on coaching** — every prompt becomes a language practice rep
 - **Any language pair** — not limited to English learners
 - **IELTS depth when needed** — switch from lightweight correction to exam-oriented practice
+- **Vocab focus** — automatically tracks words you struggle with (`gap`, `correction`, `upgrade`) and promotes them to mastered after 3 correct uses
 
 | Platform | Native integration | Status |
 | --- | --- | --- |
@@ -227,6 +228,11 @@ On **Claude Code**, use `/language-coach:language-coach ...`.
 | `/language-coach on` | Resume coaching |
 | `/language-coach progress` | Show estimate history for all languages |
 | `/language-coach progress <lang>` | Show estimate history for a specific language |
+| `/language-coach vocab on` | Enable vocab focus tracking |
+| `/language-coach vocab off` | Disable vocab focus tracking |
+| `/language-coach vocab [<lang>]` | Show active vocab entries (all languages or one) |
+| `/language-coach track-vocab` | Manually add a vocab entry |
+| `/language-coach mark-vocab-mastered` | Mark a vocab entry as mastered |
 
 ---
 
