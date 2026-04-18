@@ -8,7 +8,11 @@ on:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
 
     steps:
       - uses: actions/checkout@v4
@@ -25,3 +29,16 @@ jobs:
         run: pytest tests/ -v
         env:
           PYTHONPATH: ${{ github.workspace }}
+
+      - name: Windows UTF-8 render smoke test
+        if: matrix.os == 'windows-latest'
+        shell: pwsh
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+        run: |
+          # Sanity check: the render hook must emit valid UTF-8 JSON containing
+          # the 📚 coaching-box emoji even when stdout inherits the Windows
+          # default console encoding (cp1252 / GBK-class). Pre-0.12.1 this
+          # crashed with UnicodeEncodeError; the regression guard is in
+          # scripts/render_coaching_context.py (sys.stdout.reconfigure).
+          python tests/e2e/windows_smoke_render.py

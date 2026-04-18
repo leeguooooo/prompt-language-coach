@@ -1,0 +1,19 @@
+{
+  "English": {
+    "estimates": [
+      {"date": "2026-04-13", "estimate": "5.0"},
+      {"date": "2026-04-14", "estimate": "5.5"},
+      {"date": "2026-04-15", "estimate": "5.5", "text": "First paragraph from my essay"}
+    ],
+    "currentEstimate": "5.5",
+    "scale": "ielts"
+  },
+  "Japanese": {
+    "estimates": [
+      {"date": "2026-04-15", "band": "N5"},
+      {"date": "2026-04-16", "band": "N5"}
+    ],
+    "currentBand": "N5",
+    "scale": "jlpt"
+  }
+}
