@@ -25,8 +25,22 @@ jobs:
       - name: Install test dependencies
         run: pip install pytest
 
-      - name: Run tests
+      - name: Run full suite (ubuntu)
+        if: matrix.os == 'ubuntu-latest'
         run: pytest tests/ -v
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+
+      - name: Run cross-platform tests (windows)
+        if: matrix.os == 'windows-latest'
+        # Legacy hook-install / subprocess tests under tests/scripts and
+        # tests/hooks hardcode POSIX path separators and bash wrappers in
+        # their assertions — they pass on Linux/macOS but not on Windows.
+        # tests/e2e/ was authored to be cross-OS (uses env_for_home,
+        # sys.executable, and path-agnostic assertions) so Windows coverage
+        # focuses there. The dedicated windows_smoke_render.py below covers
+        # the original UnicodeEncodeError regression.
+        run: pytest tests/e2e/ tests/shared/ -v
         env:
           PYTHONPATH: ${{ github.workspace }}
 
