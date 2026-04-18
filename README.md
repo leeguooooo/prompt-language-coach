@@ -343,6 +343,18 @@ All integrations exit silently — no coaching, no crash — when:
 - No shared or mirrored config file exists yet
 - `enabled` is `false`
 
+### Token overhead
+
+The plugin is designed to add minimal per-turn cost:
+
+| Platform | Static rules location | Per-turn hook payload |
+|---|---|---|
+| Claude Code | `~/.claude/CLAUDE.md` (via `@`-import to `~/.prompt-language-coach/claude-coaching.md`) | ~25 tokens (progress note only) |
+| Codex | `~/.codex/AGENTS.md` (marker block) | ~25 tokens (progress note only) |
+| Cursor | Hook payload each session | ~750 tokens (full coaching prompt) |
+
+On **Claude Code** and **Codex**, the full coaching instructions (~750 tokens) are loaded once as ambient instructions from the platform's config file. The `UserPromptSubmit` hook emits only a short dynamic progress note per turn (e.g. `English: current estimate A2`), keeping the added overhead to roughly **25 tokens per prompt** — about a 97% reduction versus injecting the full prompt every turn.
+
 ---
 
 ## Use cases
