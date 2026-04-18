@@ -4,6 +4,28 @@ All notable changes to this project are recorded here.
 
 This file is updated by the release workflow via `scripts/build_changelog.py`.
 
+## v0.12.2 - 2026-04-18
+
+### Fixes
+- **[HIGH] English scored targets in multi-target mode reported the wrong
+  scoring scale.** `_target_summary` / `_target_body` passed the display
+  placeholder `"{DetectedLanguage}"` into `scale_for_language()`, which fell
+  back to CEFR because the placeholder is not a known language. Result: an
+  English `scored-writing` target with `targetEstimate=7.0` rendered
+  `Scoring scale: CEFR.` instead of `IELTS.`, and the scoring guidance lines
+  came from CEFR instead of IELTS, biasing the estimate. Scale / guidance /
+  sections now resolve from the configured `target["targetLanguage"]`; only
+  the box title keeps the `{DetectedLanguage}` placeholder for Claude to
+  substitute at runtime.
+- **[MEDIUM] `target <lang>` was misleading in multi-target mode.** It only
+  updated top-level `targetLanguage`, which `build_static_prompt` ignores
+  when `targets[]` is non-empty, so users saw `Target language updated to:
+  Korean` yet coaching continued against the previous profiles. The command
+  now (a) promotes the matching profile to primary when `<lang>` is already
+  in `targets[]`, and (b) explicitly states that it only updated the
+  fallback language and suggests `target-add <lang>` when it is not. README
+  and skill docs updated to describe the real behavior.
+
 ## v0.12.1 - 2026-04-18
 
 ### Fixes

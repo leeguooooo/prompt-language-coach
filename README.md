@@ -213,7 +213,7 @@ On **Claude Code**, use `/language-coach:language-coach ...`.
 | `$language-coach setup` | One-time interactive setup wizard in Codex |
 | `/language-coach ...` | Command surface for Cursor |
 | `/language-coach native <lang>` | Change your native language |
-| `/language-coach target <lang>` | Change the language you are learning |
+| `/language-coach target <lang>` | Single-target mode: set the language you are learning. Multi-target mode: promote an existing profile to primary (or warn + suggest `target-add` if the language isn't configured yet) |
 | `/language-coach style <mode>` | Switch coaching style: `teaching`, `concise`, `translate` |
 | `/language-coach response <mode>` | Switch response language: `native` or `target` |
 | `/language-coach goal <mode>` | Switch learning goal: `everyday` or `scored` |

@@ -114,7 +114,15 @@ Run:
 python3 ../../scripts/manage_language_coach.py --platform <platform> target "<lang>"
 ```
 
-Confirm: `Target language updated to: <lang>`
+Behavior depends on whether multi-target profiles are configured:
+
+- **Single target (targets[] empty)**: sets the language the coach practices.
+  Confirm: `Target language updated to: <lang>`.
+- **Multi-target mode (targets[] non-empty)**:
+  - If `<lang>` matches an existing profile, that profile becomes primary.
+  - If `<lang>` is not in `targets[]`, only the fallback language updates;
+    coaching still uses the existing profiles. Use `target-add <lang>` to
+    actually coach a new language.
 
 ### Multi-target management
 

@@ -767,7 +767,35 @@ def apply_command(
         return f"Native language updated to: {args.value}"
     if args.command == "target":
         config["targetLanguage"] = args.value
-        return f"Target language updated to: {args.value}"
+        targets_list = [
+            target
+            for target in config.get("targets", []) or []
+            if isinstance(target, dict) and target.get("targetLanguage")
+        ]
+        if not targets_list:
+            return f"Target language updated to: {args.value}"
+
+        matching = next(
+            (
+                target
+                for target in targets_list
+                if str(target.get("targetLanguage")).casefold() == args.value.casefold()
+            ),
+            None,
+        )
+        if matching is not None:
+            reordered = [matching] + [t for t in targets_list if t is not matching]
+            config["targets"] = reordered
+            return (
+                f"Primary target set to: {args.value}. "
+                f"Active profiles: {', '.join(list_targets(config))}."
+            )
+        return (
+            f"Top-level target set to: {args.value} (used only as the fallback "
+            f"language when user input does not match a configured profile). "
+            f"Active profiles are still: {', '.join(list_targets(config))}. "
+            f"Run `target-add {args.value}` to coach this language."
+        )
     if args.command == "style":
         config["style"] = args.value
         _propagate_to_targets(config, "style")

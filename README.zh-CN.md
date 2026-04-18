@@ -213,7 +213,7 @@ python3 ~/.cursor/extensions/<你的 cursor 插件路径>/scripts/manage_languag
 | `$language-coach setup` | Codex 里的一次性交互式设置向导 |
 | `/language-coach ...` | Cursor 里的命令形式 |
 | `/language-coach native <lang>` | 修改你的母语 |
-| `/language-coach target <lang>` | 修改你正在学习的语言 |
+| `/language-coach target <lang>` | 单目标模式：修改你正在学习的语言；多目标模式下：若已存在该 profile 则切换为主目标，否则仅更新 fallback 语言并提示使用 `target-add` |
 | `/language-coach style <mode>` | 切换辅导风格：`teaching`、`concise`、`translate` |
 | `/language-coach response <mode>` | 切换回复语言：`native` 或 `target` |
 | `/language-coach goal <mode>` | 切换学习目标：`everyday` 或 `scored` |

@@ -168,16 +168,23 @@ def _target_profiles(config: dict[str, Any]) -> list[dict[str, Any]]:
 def _target_body(
     target: dict[str, Any], detected_language: str | None
 ) -> list[str]:
-    """Guidance/sections/box framing for a target (the shareable part)."""
-    target_language = detected_language or target["targetLanguage"]
+    """Guidance/sections/box framing for a target (the shareable part).
+
+    `detected_language` is the display placeholder (e.g. "{DetectedLanguage}")
+    that Claude substitutes at runtime inside the box title — it must NOT
+    be used to resolve scale/guidance. Scale and scoring guidance come from
+    the configured `target["targetLanguage"]`, otherwise English targets
+    silently fall back to CEFR instead of IELTS.
+    """
+    config_language = target["targetLanguage"]
     lines: list[str] = ["  Coaching guidance:"]
     lines.extend(f"  - {line}" for line in guidance_for_mode(target["mode"]))
     lines.extend(
         f"  - {line}"
-        for line in _scoring_guidance(target_language, target["mode"])
+        for line in _scoring_guidance(config_language, target["mode"])
     )
     lines.append("  Feedback sections:")
-    lines.extend(f"  - {section}" for section in _sections_for_prompt(target_language, target["mode"]))
+    lines.extend(f"  - {section}" for section in _sections_for_prompt(config_language, target["mode"]))
     lines.append("  Box framing:")
     lines.extend(
         f"  - {line}"
@@ -192,8 +199,7 @@ def _target_summary(
     detected_language: str | None = None,
     include_body: bool = True,
 ) -> list[str]:
-    target_language = detected_language or target["targetLanguage"]
-    scale = scale_for_language(target_language)
+    scale = scale_for_language(target["targetLanguage"])
     lines = [
         (
             f"- {target['targetLanguage']}: goal={target['goal']}, "
