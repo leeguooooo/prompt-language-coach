@@ -28,7 +28,7 @@ class CodexHookInstallTests(unittest.TestCase):
             hooks_path = Path(tmp) / "hooks.json"
             result = subprocess.run(
                 [
-                    "python3",
+                    sys.executable,
                     "platforms/codex/install_hooks.py",
                     "--hooks-path",
                     str(hooks_path),
@@ -81,7 +81,7 @@ class CodexHookInstallTests(unittest.TestCase):
 
             result = subprocess.run(
                 [
-                    "python3",
+                    sys.executable,
                     "platforms/codex/install_hooks.py",
                     "--hooks-path",
                     str(hooks_path),
@@ -143,7 +143,7 @@ class CodexHookInstallTests(unittest.TestCase):
 
             result = subprocess.run(
                 [
-                    "python3",
+                    sys.executable,
                     "platforms/codex/install_hooks.py",
                     "--hooks-path",
                     str(hooks_path),

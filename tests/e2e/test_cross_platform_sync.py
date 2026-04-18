@@ -18,6 +18,8 @@ import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
+from tests._subprocess_env import env_for_home
+
 REPO_ROOT = Path(__file__).resolve().parents[2]
 MANAGE = str(REPO_ROOT / "scripts" / "manage_language_coach.py")
 RENDER = str(REPO_ROOT / "scripts" / "render_coaching_context.py")
@@ -29,7 +31,8 @@ BOOK_EMOJI_UTF8 = BOOK_EMOJI.encode("utf-8")
 
 
 def _run(cmd: list[str], home: Path, *, extra_env: dict[str, str] | None = None) -> subprocess.CompletedProcess:
-    env = {"HOME": str(home), "PATH": os.environ.get("PATH", ""), "PYTHONPATH": str(REPO_ROOT)}
+    env = env_for_home(home)
+    env["PYTHONPATH"] = str(REPO_ROOT)
     if extra_env:
         env.update(extra_env)
     return subprocess.run([sys.executable, *cmd], env=env, capture_output=True, text=True, check=False)
@@ -92,12 +95,9 @@ class CrossPlatformSyncTests(unittest.TestCase):
                 "targets": [],
             })
 
-            env = {
-                "HOME": str(home),
-                "PATH": os.environ.get("PATH", ""),
-                "PYTHONPATH": str(REPO_ROOT),
-                "PYTHONIOENCODING": "gbk:strict",
-            }
+            env = env_for_home(home)
+            env["PYTHONPATH"] = str(REPO_ROOT)
+            env["PYTHONIOENCODING"] = "gbk:strict"
             r = subprocess.run(
                 [sys.executable, RENDER, "--platform", "cursor"],
                 env=env,

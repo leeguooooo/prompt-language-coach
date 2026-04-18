@@ -1,15 +1,18 @@
 import json
 import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
+
+from tests._subprocess_env import env_for_home
 
 
 class CodexHookOutputTests(unittest.TestCase):
     def _run_render(self, home: Path, config_path: Path) -> subprocess.CompletedProcess:
         return subprocess.run(
             [
-                "python3",
+                sys.executable,
                 "scripts/render_coaching_context.py",
                 "--platform",
                 "codex",
@@ -19,7 +22,7 @@ class CodexHookOutputTests(unittest.TestCase):
             check=False,
             capture_output=True,
             text=True,
-            env={"HOME": str(home), "PATH": "/usr/bin:/bin"},
+            env=env_for_home(home),
         )
 
     def test_render_emits_only_progress_note_in_additional_context(self) -> None:
@@ -99,7 +102,7 @@ class CodexHookOutputTests(unittest.TestCase):
 
             result = subprocess.run(
                 [
-                    "python3",
+                    sys.executable,
                     "scripts/manage_language_coach.py",
                     "--platform",
                     "codex",
@@ -108,7 +111,7 @@ class CodexHookOutputTests(unittest.TestCase):
                 check=False,
                 capture_output=True,
                 text=True,
-                env={"HOME": str(home), "PATH": "/usr/bin:/bin"},
+                env=env_for_home(home),
             )
             self.assertEqual(result.returncode, 0, result.stderr)
             text = agents_md.read_text(encoding="utf-8")

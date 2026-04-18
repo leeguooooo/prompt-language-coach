@@ -1,8 +1,11 @@
 import json
 import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
+
+from tests._subprocess_env import env_for_home
 
 
 class ClaudeHookOutputTests(unittest.TestCase):
@@ -10,7 +13,7 @@ class ClaudeHookOutputTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             result = subprocess.run(
                 [
-                    "python3",
+                    sys.executable,
                     "scripts/render_coaching_context.py",
                     "--platform",
                     "claude",
@@ -20,7 +23,7 @@ class ClaudeHookOutputTests(unittest.TestCase):
                 check=False,
                 capture_output=True,
                 text=True,
-                env={"HOME": str(Path(tmp))},
+                env=env_for_home(Path(tmp)),
             )
 
         self.assertEqual(result.returncode, 0, result.stderr)

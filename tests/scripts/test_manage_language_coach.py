@@ -1,5 +1,6 @@
 import json
 import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -7,6 +8,7 @@ from unittest import mock
 
 from scripts import manage_language_coach
 from scripts.manage_language_coach import add_target, list_targets, remove_target
+from tests._subprocess_env import env_for_home
 
 
 class ManageLanguageCoachTests(unittest.TestCase):
@@ -40,7 +42,7 @@ class ManageLanguageCoachTests(unittest.TestCase):
 
             result = subprocess.run(
                 [
-                    "python3",
+                    sys.executable,
                     "scripts/manage_language_coach.py",
                     "--platform",
                     "codex",
@@ -49,7 +51,7 @@ class ManageLanguageCoachTests(unittest.TestCase):
                 check=False,
                 capture_output=True,
                 text=True,
-                env={"HOME": str(home)},
+                env=env_for_home(home),
             )
 
             self.assertEqual(result.returncode, 0, result.stderr)
@@ -63,7 +65,7 @@ class ManageLanguageCoachTests(unittest.TestCase):
 
             result = subprocess.run(
                 [
-                    "python3",
+                    sys.executable,
                     "scripts/manage_language_coach.py",
                     "--platform",
                     "codex",
@@ -73,7 +75,7 @@ class ManageLanguageCoachTests(unittest.TestCase):
                 check=False,
                 capture_output=True,
                 text=True,
-                env={"HOME": str(home)},
+                env=env_for_home(home),
             )
 
             self.assertEqual(result.returncode, 0, result.stderr)
@@ -87,7 +89,7 @@ class ManageLanguageCoachTests(unittest.TestCase):
 
             result = subprocess.run(
                 [
-                    "python3",
+                    sys.executable,
                     "scripts/manage_language_coach.py",
                     "--platform",
                     "claude",
@@ -97,7 +99,7 @@ class ManageLanguageCoachTests(unittest.TestCase):
                 check=False,
                 capture_output=True,
                 text=True,
-                env={"HOME": str(home)},
+                env=env_for_home(home),
             )
 
             self.assertEqual(result.returncode, 0, result.stderr)
@@ -118,7 +120,7 @@ class ManageLanguageCoachTests(unittest.TestCase):
 
             result = subprocess.run(
                 [
-                    "python3",
+                    sys.executable,
                     "scripts/manage_language_coach.py",
                     "--platform",
                     "codex",
@@ -127,7 +129,7 @@ class ManageLanguageCoachTests(unittest.TestCase):
                 check=False,
                 capture_output=True,
                 text=True,
-                env={"HOME": str(home)},
+                env=env_for_home(home),
             )
 
             self.assertEqual(result.returncode, 0, result.stderr)
@@ -146,7 +148,7 @@ class ManageLanguageCoachTests(unittest.TestCase):
 
             result = subprocess.run(
                 [
-                    "python3",
+                    sys.executable,
                     "scripts/manage_language_coach.py",
                     "--platform",
                     "codex",
@@ -155,7 +157,7 @@ class ManageLanguageCoachTests(unittest.TestCase):
                 check=False,
                 capture_output=True,
                 text=True,
-                env={"HOME": str(home)},
+                env=env_for_home(home),
             )
 
             self.assertEqual(result.returncode, 0, result.stderr)
@@ -185,7 +187,7 @@ class ManageLanguageCoachTests(unittest.TestCase):
 
             result = subprocess.run(
                 [
-                    "python3",
+                    sys.executable,
                     "scripts/manage_language_coach.py",
                     "--config",
                     str(config_path),
@@ -226,7 +228,7 @@ class ManageLanguageCoachTests(unittest.TestCase):
 
             result = subprocess.run(
                 [
-                    "python3",
+                    sys.executable,
                     "scripts/manage_language_coach.py",
                     "--config",
                     str(config_path),
@@ -342,7 +344,7 @@ class ManageLanguageCoachTests(unittest.TestCase):
 
             result = subprocess.run(
                 [
-                    "python3",
+                    sys.executable,
                     "scripts/manage_language_coach.py",
                     "--platform",
                     "codex",
@@ -351,7 +353,7 @@ class ManageLanguageCoachTests(unittest.TestCase):
                 check=False,
                 capture_output=True,
                 text=True,
-                env={"HOME": str(home)},
+                env=env_for_home(home),
             )
 
             self.assertEqual(result.returncode, 0, result.stderr)
@@ -383,7 +385,7 @@ class ManageLanguageCoachTests(unittest.TestCase):
 
             result = subprocess.run(
                 [
-                    "python3",
+                    sys.executable,
                     "scripts/manage_language_coach.py",
                     "--config",
                     str(config_path),
@@ -408,7 +410,7 @@ class ManageLanguageCoachTests(unittest.TestCase):
             for platform, band in (("codex", "5.0"), ("claude", "5.5"), ("cursor", "6.0")):
                 result = subprocess.run(
                     [
-                        "python3",
+                        sys.executable,
                         "scripts/manage_language_coach.py",
                         "--platform",
                         platform,
@@ -419,7 +421,7 @@ class ManageLanguageCoachTests(unittest.TestCase):
                     check=False,
                     capture_output=True,
                     text=True,
-                    env={"HOME": str(home)},
+                    env=env_for_home(home),
                 )
                 self.assertEqual(result.returncode, 0, result.stderr)
 
@@ -460,7 +462,7 @@ class ManageLanguageCoachTests(unittest.TestCase):
 
             result = subprocess.run(
                 [
-                    "python3",
+                    sys.executable,
                     "scripts/manage_language_coach.py",
                     "--platform",
                     "claude",
@@ -469,7 +471,7 @@ class ManageLanguageCoachTests(unittest.TestCase):
                 check=False,
                 capture_output=True,
                 text=True,
-                env={"HOME": str(home)},
+                env=env_for_home(home),
             )
 
             self.assertEqual(result.returncode, 0, result.stderr)
@@ -483,7 +485,7 @@ class ManageLanguageCoachTests(unittest.TestCase):
 
             result = subprocess.run(
                 [
-                    "python3",
+                    sys.executable,
                     "scripts/manage_language_coach.py",
                     "--platform",
                     "codex",
@@ -502,7 +504,7 @@ class ManageLanguageCoachTests(unittest.TestCase):
                 check=False,
                 capture_output=True,
                 text=True,
-                env={"HOME": str(home)},
+                env=env_for_home(home),
             )
 
             self.assertEqual(result.returncode, 0, result.stderr)
@@ -527,7 +529,7 @@ class ManageLanguageCoachTests(unittest.TestCase):
             for index in range(21):
                 result = subprocess.run(
                     [
-                        "python3",
+                        sys.executable,
                         "scripts/manage_language_coach.py",
                         "--platform",
                         "codex",
@@ -542,7 +544,7 @@ class ManageLanguageCoachTests(unittest.TestCase):
                     check=False,
                     capture_output=True,
                     text=True,
-                    env={"HOME": str(home)},
+                    env=env_for_home(home),
                 )
                 self.assertEqual(result.returncode, 0, result.stderr)
 
@@ -563,7 +565,7 @@ class ManageLanguageCoachTests(unittest.TestCase):
 
             seed = subprocess.run(
                 [
-                    "python3",
+                    sys.executable,
                     "scripts/manage_language_coach.py",
                     "--platform",
                     "codex",
@@ -578,14 +580,14 @@ class ManageLanguageCoachTests(unittest.TestCase):
                 check=False,
                 capture_output=True,
                 text=True,
-                env={"HOME": str(home)},
+                env=env_for_home(home),
             )
             self.assertEqual(seed.returncode, 0, seed.stderr)
 
             for hit in range(3):
                 result = subprocess.run(
                     [
-                        "python3",
+                        sys.executable,
                         "scripts/manage_language_coach.py",
                         "--platform",
                         "codex",
@@ -596,7 +598,7 @@ class ManageLanguageCoachTests(unittest.TestCase):
                     check=False,
                     capture_output=True,
                     text=True,
-                    env={"HOME": str(home)},
+                    env=env_for_home(home),
                 )
                 self.assertEqual(result.returncode, 0, result.stderr)
                 payload = json.loads(
@@ -617,7 +619,7 @@ class ManageLanguageCoachTests(unittest.TestCase):
 
             seed = subprocess.run(
                 [
-                    "python3",
+                    sys.executable,
                     "scripts/manage_language_coach.py",
                     "--platform",
                     "codex",
@@ -634,13 +636,13 @@ class ManageLanguageCoachTests(unittest.TestCase):
                 check=False,
                 capture_output=True,
                 text=True,
-                env={"HOME": str(home)},
+                env=env_for_home(home),
             )
             self.assertEqual(seed.returncode, 0, seed.stderr)
 
             result = subprocess.run(
                 [
-                    "python3",
+                    sys.executable,
                     "scripts/manage_language_coach.py",
                     "--platform",
                     "codex",
@@ -650,7 +652,7 @@ class ManageLanguageCoachTests(unittest.TestCase):
                 check=False,
                 capture_output=True,
                 text=True,
-                env={"HOME": str(home)},
+                env=env_for_home(home),
             )
 
             self.assertEqual(result.returncode, 0, result.stderr)
@@ -659,7 +661,7 @@ class ManageLanguageCoachTests(unittest.TestCase):
 
             toggle = subprocess.run(
                 [
-                    "python3",
+                    sys.executable,
                     "scripts/manage_language_coach.py",
                     "--platform",
                     "codex",
@@ -669,7 +671,7 @@ class ManageLanguageCoachTests(unittest.TestCase):
                 check=False,
                 capture_output=True,
                 text=True,
-                env={"HOME": str(home)},
+                env=env_for_home(home),
             )
             self.assertEqual(toggle.returncode, 0, toggle.stderr)
 

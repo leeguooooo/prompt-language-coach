@@ -1,5 +1,6 @@
 import json
 import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -13,6 +14,7 @@ from platforms.cursor.install_hooks import (
     is_managed_entry,
     remove,
 )
+from tests._subprocess_env import env_for_home
 
 
 class CursorHookInstallTests(unittest.TestCase):
@@ -134,7 +136,7 @@ class CursorHookInstallTests(unittest.TestCase):
 
             result = subprocess.run(
                 [
-                    "python3",
+                    sys.executable,
                     "scripts/manage_language_coach.py",
                     "--platform",
                     "cursor",
@@ -143,14 +145,17 @@ class CursorHookInstallTests(unittest.TestCase):
                 check=False,
                 capture_output=True,
                 text=True,
-                env={"HOME": str(home), "PATH": "/usr/bin:/bin"},
+                env=env_for_home(home),
             )
 
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertTrue(hooks_path.exists())
             payload = json.loads(hooks_path.read_text(encoding="utf-8"))
             entries = payload["hooks"]["sessionStart"]
-            self.assertTrue(any("cursor-language-coach.sh" in e["command"] for e in entries))
+            # The installed command differs by OS: bash-wrapper on POSIX,
+            # direct python invocation on Windows. Both must resolve back to
+            # our managed hook.
+            self.assertTrue(any(is_managed_entry(e) for e in entries))
             self.assertIn("Cursor hook installed:", result.stdout)
 
 
