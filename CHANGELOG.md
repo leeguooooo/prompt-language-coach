@@ -4,6 +4,32 @@ All notable changes to this project are recorded here.
 
 This file is updated by the release workflow via `scripts/build_changelog.py`.
 
+## v0.12.0 - 2026-04-18
+
+### Improvements
+- **Cut coaching overhead by ~60%** through prompt deduplication and
+  sharing. On Claude Code, the per-turn cost dropped from ~2,477 tokens
+  (when both CLAUDE.md and the hook injected the same ~1,200-token
+  static block) to ~754 tokens for the static part — and the hook
+  itself now only emits the dynamic progress note (~25 tokens).
+- `build_static_prompt` no longer repeats the Triviality filter,
+  IMPORTANT compaction reminder, or Box framing three times in
+  multi-target mode. When every configured target produces the same
+  body (guidance/sections/box framing), the body is emitted once as a
+  "Shared coaching body" block instead of per-target.
+- `sync_claude_md` now writes the coaching text to
+  `~/.prompt-language-coach/claude-coaching.md` and references it in
+  `~/.claude/CLAUDE.md` via a single `@`-import line inside the marker
+  block. User's CLAUDE.md stays clean (3 lines instead of ~40);
+  approve the import once on first run and it Just Works.
+
+### Internal
+- `_target_body` factored out of `_target_summary` so the guidance /
+  sections / box framing lines can be compared across targets and
+  shared when identical.
+- `sync_claude_md` removes the external `claude-coaching.md` when the
+  user disables coaching (so uninstall leaves no orphan files).
+
 ## v0.11.5 - 2026-04-17
 
 ### Fixes

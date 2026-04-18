@@ -835,14 +835,29 @@ def _platform_claude_md(platform: str) -> Path | None:
     return None
 
 
+def _external_claude_coaching_path() -> Path:
+    return Path.home() / ".prompt-language-coach" / "claude-coaching.md"
+
+
 def sync_claude_md(config: dict[str, Any], platform: str) -> None:
-    """Upsert the coaching instruction block in the platform CLAUDE.md."""
+    """Upsert the coaching instruction block in the platform CLAUDE.md.
+
+    CLAUDE.md only contains a marker block with a single `@`-import line;
+    the full coaching text lives in ~/.prompt-language-coach/claude-coaching.md.
+    """
     md_path = _platform_claude_md(platform)
     if md_path is None:
         return
 
+    external = _external_claude_coaching_path()
+
     if not config.get("enabled", True):
-        # Remove the block when coaching is disabled
+        # Remove the marker block from CLAUDE.md AND the external file when disabled
+        if external.exists():
+            try:
+                external.unlink()
+            except OSError:
+                pass
         if not md_path.exists():
             return
         text = md_path.read_text(encoding="utf-8")
@@ -856,9 +871,14 @@ def sync_claude_md(config: dict[str, Any], platform: str) -> None:
         md_path.write_text(new_text + "\n" if new_text else "", encoding="utf-8")
         return
 
+    # Write the full coaching text to the external file.
+    external.parent.mkdir(parents=True, exist_ok=True)
+    external.write_text(build_static_prompt(config) + "\n", encoding="utf-8")
+
+    # CLAUDE.md only references it via @-import.
     coaching_block = "\n".join([
         _MARKER_START,
-        build_prompt(config),
+        f"@{external}",
         _MARKER_END,
     ])
 

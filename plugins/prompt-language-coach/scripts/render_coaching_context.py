@@ -79,6 +79,24 @@ def main() -> int:
         _emit(args.platform, note)
         return 0
 
+    if args.platform == "claude":
+        # Static instructions live in ~/.claude/CLAUDE.md (written by setup/config commands).
+        # Emit only the small dynamic progress note when the marker block is present;
+        # fall back to the full prompt for fresh installs that haven't run setup yet.
+        claude_md = Path.home() / ".claude" / "CLAUDE.md"
+        if claude_md.exists() and "language-coach:start" in claude_md.read_text(encoding="utf-8"):
+            note = build_progress_note(str(progress_file))
+            _emit(args.platform, note)
+        else:
+            coaching_text = build_prompt(
+                config,
+                repo_root=str(REPO_ROOT),
+                progress_path=str(progress_file),
+                vocab_path=str(vocab_file),
+            )
+            _emit(args.platform, coaching_text)
+        return 0
+
     coaching_text = build_prompt(
         config,
         repo_root=str(REPO_ROOT),

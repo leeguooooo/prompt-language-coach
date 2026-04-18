@@ -165,8 +165,32 @@ def _target_profiles(config: dict[str, Any]) -> list[dict[str, Any]]:
     return [target for target in targets if isinstance(target, dict) and target.get("targetLanguage")]
 
 
+def _target_body(
+    target: dict[str, Any], detected_language: str | None
+) -> list[str]:
+    """Guidance/sections/box framing for a target (the shareable part)."""
+    target_language = detected_language or target["targetLanguage"]
+    lines: list[str] = ["  Coaching guidance:"]
+    lines.extend(f"  - {line}" for line in guidance_for_mode(target["mode"]))
+    lines.extend(
+        f"  - {line}"
+        for line in _scoring_guidance(target_language, target["mode"])
+    )
+    lines.append("  Feedback sections:")
+    lines.extend(f"  - {section}" for section in _sections_for_prompt(target_language, target["mode"]))
+    lines.append("  Box framing:")
+    lines.extend(
+        f"  - {line}"
+        for line in _box_instruction(target["mode"], detected_language)
+    )
+    return lines
+
+
 def _target_summary(
-    target: dict[str, Any], *, detected_language: str | None = None
+    target: dict[str, Any],
+    *,
+    detected_language: str | None = None,
+    include_body: bool = True,
 ) -> list[str]:
     target_language = detected_language or target["targetLanguage"]
     scale = scale_for_language(target_language)
@@ -183,19 +207,8 @@ def _target_summary(
     if target.get("responseLanguage"):
         lines.append(f"  Response language: {target['responseLanguage']}.")
     lines.append(f"  Scoring scale: {scale.display_name}.")
-    lines.append("  Coaching guidance:")
-    lines.extend(f"  - {line}" for line in guidance_for_mode(target["mode"]))
-    lines.extend(
-        f"  - {line}"
-        for line in _scoring_guidance(target_language, target["mode"])
-    )
-    lines.append("  Feedback sections:")
-    lines.extend(f"  - {section}" for section in _sections_for_prompt(target_language, target["mode"]))
-    lines.append("  Box framing:")
-    lines.extend(
-        f"  - {line}"
-        for line in _box_instruction(target["mode"], detected_language)
-    )
+    if include_body:
+        lines.extend(_target_body(target, detected_language))
     return lines
 
 
@@ -228,8 +241,21 @@ def build_static_prompt(
             ),
             "Target language profiles:",
         ]
+        # If every target produces the same body (guidance/sections/box framing),
+        # emit one shared body at the bottom and skip it per-target.
+        bodies = [_target_body(t, "{DetectedLanguage}") for t in targets]
+        shared_body = bodies[0] if all(b == bodies[0] for b in bodies) else None
         for target in targets:
-            base.extend(_target_summary(target, detected_language="{DetectedLanguage}"))
+            base.extend(
+                _target_summary(
+                    target,
+                    detected_language="{DetectedLanguage}",
+                    include_body=shared_body is None,
+                )
+            )
+        if shared_body is not None:
+            base.append("Shared coaching body (applies to every target above):")
+            base.extend(shared_body)
         base.extend(
             [
                 (
@@ -243,23 +269,7 @@ def build_static_prompt(
                     "If the user's language is ambiguous or does not match a configured "
                     f"target, fall back to the legacy single-target settings for {config['targetLanguage']}."
                 ),
-                "Legacy single-target box framing:",
-                *_box_instruction(config["mode"]),
                 *_native_only_box_instruction("{DetectedTargetLanguage}"),
-                (
-                    "Triviality filter: if the user's message is 2 or fewer target-language "
-                    "words AND has no error, no native-language fallback, and no meaningful "
-                    "upgrade opportunity, SKIP the full coaching box entirely. Just answer "
-                    "the actual request directly — do not render empty 'Corrected: <same>' / "
-                    "'More natural: <same>' sections. One-word inputs like 'English' or 'ok' "
-                    "should pass through without ceremony."
-                ),
-                (
-                    "IMPORTANT: This coaching instruction is permanent and must be applied "
-                    "on every single response, including in long conversations and after "
-                    "context compaction. Never skip the coaching box — except under the "
-                    "Triviality filter above."
-                ),
             ]
         )
     else:
