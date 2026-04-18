@@ -1,20 +1,7 @@
 {
   "nativeLanguage": "Chinese",
   "targetLanguage": "English",
-  "targets": [
-    {
-      "targetLanguage": "English",
-      "goal": "everyday",
-      "mode": "everyday",
-      "style": "teaching"
-    },
-    {
-      "targetLanguage": "Japanese",
-      "goal": "everyday",
-      "mode": "everyday",
-      "style": "teaching"
-    }
-  ],
+  "targets": [],
   "goal": "everyday",
   "mode": "everyday",
   "style": "teaching",

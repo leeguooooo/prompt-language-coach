@@ -6,6 +6,14 @@ import sys
 from pathlib import Path
 
 
+# Windows PowerShell defaults stdout to GBK/cp936, which cannot encode the
+# emoji in our coaching box (📚, U+1F4DA). Reconfigure to UTF-8 before any
+# print() so the hook does not crash on Windows hosts.
+try:
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+except (AttributeError, OSError):
+    pass
+
 REPO_ROOT = Path(__file__).resolve().parent.parent
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))

@@ -4,6 +4,44 @@ All notable changes to this project are recorded here.
 
 This file is updated by the release workflow via `scripts/build_changelog.py`.
 
+## v0.12.1 - 2026-04-18
+
+### Fixes
+- **[CRITICAL] Cursor hook crashed silently on Windows**. `print(json.dumps(…,
+  ensure_ascii=False))` raised `UnicodeEncodeError: 'gbk' codec can't encode
+  character '\U0001f4da'` when PowerShell's default stdout encoding (GBK/cp936)
+  met the 📚 emoji in our coaching box title. Hooks showed `installed` and
+  status `on`, but `additional_context` never reached Cursor so the coaching
+  block did not appear. `scripts/render_coaching_context.py` now
+  `sys.stdout.reconfigure(encoding="utf-8", errors="replace")` at import time
+  so every platform writes valid UTF-8 JSON regardless of the console locale.
+- **[HIGH] `mode` / `style` / `goal` commands had no visible effect for
+  multi-target users.** `defaults.json` seeded `targets` with hardcoded
+  `goal=everyday, mode=everyday, style=teaching`, and `build_static_prompt`
+  preferred the `targets` list over top-level fields, so a user running
+  `mode scored-writing` saw the saved config change but the generated coaching
+  prompt stayed on everyday/teaching. `apply_command` now propagates
+  `mode`/`style`/`goal`/`response`/`estimate`/`focus`/`level`/`vocab` changes
+  to every entry in `targets`, and `defaults.json` no longer pre-seeds
+  hardcoded per-target fields.
+- **[HIGH] Cross-platform config changes did not refresh Claude static
+  prompt.** `sync_claude_md` was gated on `platform == "claude"`, so a
+  `mode scored-writing` invocation from Codex or Cursor synced the JSON
+  config files but left `~/.prompt-language-coach/claude-coaching.md` and the
+  `@`-import in `~/.claude/CLAUDE.md` stale. It now fires whenever
+  `~/.claude/` exists, matching the platform-agnostic behavior of
+  `sync_codex_agents_md`.
+- **[MEDIUM] Same-day `track-estimate` calls collapsed to a single session.**
+  `cmd_record_estimate` explicitly overwrote any prior entry with the same
+  date, and `_merge_estimates` keyed by `date` alone, so 5 distinct sessions
+  recorded in one day showed up as 1. Records now carry a `timestamp` field
+  (seconds precision) and always append; merges dedupe by
+  `(timestamp, estimate, text)` so bit-identical cross-platform writes still
+  collapse but distinct sessions on the same day are preserved.
+- **[MEDIUM] `pytest -q` failed at collection** with `ModuleNotFoundError: No
+  module named 'platforms'`. A repo-root `conftest.py` now inserts the repo
+  root into `sys.path` so both `pytest` and `python3 -m pytest` work.
+
 ## v0.12.0 - 2026-04-18
 
 ### Improvements

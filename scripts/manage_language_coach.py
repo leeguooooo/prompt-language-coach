@@ -46,6 +46,34 @@ TARGET_FALLBACK_KEYS = (
     "responseLanguage",
 )
 
+# Per-target fields that must track top-level config. No UI currently
+# exposes per-target customization, so keeping them in lockstep avoids the
+# bug where legacy defaults.json seeded targets with hardcoded
+# everyday/teaching values that silently overrode top-level changes.
+_PER_TARGET_SYNCED_KEYS = (
+    "goal",
+    "mode",
+    "style",
+    "responseLanguage",
+    "vocabFocus",
+    "scoringFocus",
+    "targetEstimate",
+    "currentLevel",
+)
+
+
+def _propagate_to_targets(config: dict[str, Any], *keys: str) -> None:
+    raw_targets = config.get("targets")
+    if not isinstance(raw_targets, list):
+        return
+    propagate = keys or _PER_TARGET_SYNCED_KEYS
+    for target in raw_targets:
+        if not isinstance(target, dict):
+            continue
+        for key in propagate:
+            if key in _PER_TARGET_SYNCED_KEYS and key in config:
+                target[key] = config[key]
+
 
 def resolve_default_config(platform: str) -> Path:
     home = Path.home()
@@ -181,7 +209,12 @@ def _save_progress(progress_path: Path, data: dict[str, Any]) -> None:
 def _merge_estimates(
     current: list[dict[str, str]], incoming: list[dict[str, str]]
 ) -> list[dict[str, str]]:
-    merged: dict[str, dict[str, str]] = {}
+    # Keyed by (timestamp_or_date, estimate, text) so same-day multi-session
+    # writes are preserved and only bit-identical cross-platform duplicates
+    # collapse. Pre-timestamp records keyed by date still dedupe per-day for
+    # backward compat.
+    merged: dict[tuple[str, str, str], dict[str, str]] = {}
+    order: list[tuple[str, str, str]] = []
 
     for record in current + incoming:
         date_key = record.get("date", "")
@@ -190,19 +223,25 @@ def _merge_estimates(
         estimate_value = record.get("estimate")
         if estimate_value is None:
             estimate_value = record.get("band")
-        normalized_record = {"date": date_key}
+        text_value = record.get("text", "")
+        timestamp_value = record.get("timestamp", "")
+        normalized_record: dict[str, str] = {"date": date_key}
+        if timestamp_value:
+            normalized_record["timestamp"] = timestamp_value
         if estimate_value is not None:
             normalized_record["estimate"] = estimate_value
-        if record.get("text"):
-            normalized_record["text"] = record["text"]
-        existing = merged.get(date_key)
-        if existing is None:
-            merged[date_key] = normalized_record
-            continue
-        if normalized_record.get("text") and not existing.get("text"):
-            merged[date_key] = normalized_record
+        if text_value:
+            normalized_record["text"] = text_value
 
-    return [merged[key] for key in sorted(merged.keys())]
+        key = (timestamp_value or date_key, str(estimate_value or ""), text_value)
+        if key not in merged:
+            merged[key] = normalized_record
+            order.append(key)
+        elif normalized_record.get("text") and not merged[key].get("text"):
+            merged[key] = normalized_record
+
+    order.sort(key=lambda k: (merged[k].get("timestamp") or merged[k]["date"], k))
+    return [merged[k] for k in order]
 
 
 def load_progress_data(platform: str) -> dict[str, Any]:
@@ -357,7 +396,9 @@ def cmd_record_estimate(args: argparse.Namespace) -> int:
     language = args.language
     scale = scale_for_language(language)
     estimate = normalize_estimate(args.band, scale=scale) or args.band
-    today = datetime.date.today().isoformat()
+    now = datetime.datetime.now()
+    today = now.date().isoformat()
+    timestamp = now.replace(microsecond=0).isoformat()
 
     entry = data.setdefault(
         language,
@@ -365,21 +406,15 @@ def cmd_record_estimate(args: argparse.Namespace) -> int:
     )
     estimates: list[dict[str, str]] = entry.get("estimates", [])
 
-    # Build the record — include original text when provided
+    # Build the record — include original text when provided. Each call
+    # appends a new session; do not overwrite same-day entries, otherwise
+    # multi-session days collapse to one and analyze_progress undercounts.
     text = getattr(args, "text", "") or ""
-    record: dict[str, str] = {"date": today, "estimate": estimate}
+    record: dict[str, str] = {"date": today, "timestamp": timestamp, "estimate": estimate}
     if text:
         record["text"] = text[:500]  # cap at 500 chars
 
-    # Overwrite existing entry for the same date (idempotent)
-    replaced = False
-    for i, est in enumerate(estimates):
-        if est.get("date") == today:
-            estimates[i] = record
-            replaced = True
-            break
-    if not replaced:
-        estimates.append(record)
+    estimates.append(record)
 
     entry["estimates"] = estimates
     entry["currentEstimate"] = estimate
@@ -411,7 +446,11 @@ def cmd_progress(args: argparse.Namespace) -> int:
                 estimate_value = est.get("estimate")
                 if estimate_value is None:
                     estimate_value = est.get("band")
-                print(f"  {est['date']}  {estimate_value}")
+                label = est.get("timestamp") or est.get("date")
+                # Compact display: show seconds precision when timestamp is present.
+                if label and "T" in label:
+                    label = label.replace("T", " ")
+                print(f"  {label}  {estimate_value}")
         else:
             print("  (no data yet)")
         print(f"Current estimate: {current_estimate if current_estimate is not None else '-'}")
@@ -731,13 +770,16 @@ def apply_command(
         return f"Target language updated to: {args.value}"
     if args.command == "style":
         config["style"] = args.value
+        _propagate_to_targets(config, "style")
         return f"Style updated to: {args.value}"
     if args.command == "response":
         config["responseLanguage"] = args.value
+        _propagate_to_targets(config, "responseLanguage")
         return f"Responses will use: {args.value}"
     if args.command == "goal":
         config["goal"] = canonicalize_goal(args.value, default="everyday")
         normalize_goal_state(config)
+        _propagate_to_targets(config, "goal", "mode")
         return f"Goal updated to: {config['goal']}"
     if args.command == "mode":
         mode = canonicalize_mode(args.value, default="everyday")
@@ -746,9 +788,11 @@ def apply_command(
             config["goal"] = "scored"
         elif mode == "everyday":
             config["goal"] = "everyday"
+        _propagate_to_targets(config, "mode", "goal")
         return f"Mode updated to: {mode}"
     if args.command in {"band", "estimate"}:
         config["targetEstimate"] = args.value
+        _propagate_to_targets(config, "targetEstimate")
         return f"Target estimate updated to: {args.value}"
     if args.command in {"focus", "practice-focus"}:
         config["scoringFocus"] = args.value
@@ -760,12 +804,15 @@ def apply_command(
                 config["mode"] = "scored-speaking"
             elif args.value == "writing":
                 config["mode"] = "scored-writing"
+        _propagate_to_targets(config, "scoringFocus", "mode")
         return f"Scoring focus updated to: {args.value}"
     if args.command == "level":
         config["currentLevel"] = args.value
+        _propagate_to_targets(config, "currentLevel")
         return f"Current level updated to: {args.value}"
     if args.command == "vocab" and args.value in {"on", "off"}:
         config["vocabFocus"] = args.value == "on"
+        _propagate_to_targets(config, "vocabFocus")
         return f"Vocab focus {'enabled' if config['vocabFocus'] else 'disabled'}."
     if args.command == "target-add":
         if path is not None:
@@ -828,26 +875,25 @@ _MARKER_START = "<!-- language-coach:start -->"
 _MARKER_END = "<!-- language-coach:end -->"
 
 
-def _platform_claude_md(platform: str) -> Path | None:
-    """Return the CLAUDE.md path for platforms that support it, or None."""
-    if platform == "claude":
-        return Path.home() / ".claude" / "CLAUDE.md"
-    return None
-
-
 def _external_claude_coaching_path() -> Path:
     return Path.home() / ".prompt-language-coach" / "claude-coaching.md"
 
 
 def sync_claude_md(config: dict[str, Any], platform: str) -> None:
-    """Upsert the coaching instruction block in the platform CLAUDE.md.
+    """Upsert the coaching instruction block in the user's Claude Code CLAUDE.md.
 
     CLAUDE.md only contains a marker block with a single `@`-import line;
     the full coaching text lives in ~/.prompt-language-coach/claude-coaching.md.
+
+    Fires whenever ~/.claude/ exists, regardless of which platform triggered
+    the config change — so a mode update from Codex or Cursor also refreshes
+    the Claude static prompt.
     """
-    md_path = _platform_claude_md(platform)
-    if md_path is None:
+    del platform
+    claude_home = Path.home() / ".claude"
+    if not claude_home.exists():
         return
+    md_path = claude_home / "CLAUDE.md"
 
     external = _external_claude_coaching_path()
 
